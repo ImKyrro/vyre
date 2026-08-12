@@ -1,11 +1,12 @@
 import sys
+from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QDialog
 
-from pathlib import Path
-
+from .config import Config
+from .system import set_app_user_model_id
 from .theme import stylesheet
 from .ui.main_window import MainWindow
 from .ui.unlock_dialog import UnlockDialog
@@ -17,6 +18,7 @@ def _icon() -> QIcon:
 
 
 def run() -> int:
+    set_app_user_model_id()
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
@@ -33,7 +35,8 @@ def run() -> int:
     if unlock.exec() != QDialog.Accepted or unlock.vault is None:
         return 0
 
-    window = MainWindow(unlock.vault, icon)
+    config = Config.load()
+    window = MainWindow(unlock.vault, config, icon)
     window.show()
     return app.exec()
 

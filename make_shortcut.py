@@ -11,13 +11,10 @@ def _pythonw() -> str:
     return str(candidate if candidate.exists() else sys.executable)
 
 
-def main() -> None:
-    desktop = Path(os.path.join(os.environ["USERPROFILE"], "Desktop"))
-    shortcut = desktop / "Vyre.lnk"
+def _create(shortcut: Path) -> None:
     target = _pythonw()
     script = ROOT / "Vyre.pyw"
     icon = ROOT / "vyre" / "assets" / "icon.ico"
-
     ps = (
         "$ws = New-Object -ComObject WScript.Shell; "
         f"$s = $ws.CreateShortcut('{shortcut}'); "
@@ -29,7 +26,21 @@ def main() -> None:
         "$s.Save()"
     )
     subprocess.run(["powershell", "-NoProfile", "-Command", ps], check=True)
-    print(f"Created desktop shortcut: {shortcut}")
+
+
+def main() -> None:
+    desktop = Path(os.environ["USERPROFILE"]) / "Desktop"
+    start_menu = (
+        Path(os.environ["APPDATA"])
+        / "Microsoft" / "Windows" / "Start Menu" / "Programs"
+    )
+    for folder in (desktop, start_menu):
+        folder.mkdir(parents=True, exist_ok=True)
+        _create(folder / "Vyre.lnk")
+
+    print("Created shortcuts on the Desktop and in the Start Menu.")
+    print("To pin to the taskbar: launch Vyre, right-click its taskbar icon,")
+    print("then choose 'Pin to taskbar'. (Windows blocks silent pinning.)")
 
 
 if __name__ == "__main__":

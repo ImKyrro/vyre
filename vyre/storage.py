@@ -79,3 +79,52 @@ class Vault:
             if account.id == account_id:
                 return account
         return None
+
+    def move(self, account_id: str, delta: int) -> None:
+        index = next((i for i, a in enumerate(self.accounts) if a.id == account_id), None)
+        if index is None:
+            return
+        target = max(0, min(len(self.accounts) - 1, index + delta))
+        if target == index:
+            return
+        self.accounts.insert(target, self.accounts.pop(index))
+        self.save()
+
+    def sorted_accounts(self) -> List[Account]:
+        return sorted(self.accounts, key=lambda a: (not a.favorite,))
+
+    def change_password(self, new_password: str) -> None:
+        if not new_password:
+            raise VaultError("Master password cannot be empty.")
+        salt = generate_salt()
+        self._cipher = Cipher.from_password(new_password, salt)
+        self._salt = salt
+        self.save()
+
+    def export_to(self, path, password: str) -> None:
+        cipher = Cipher.from_password(password, self._salt)
+        payload = {"accounts": [a.to_dict() for a in self.accounts]}
+        token = cipher.encrypt(json.dumps(payload).encode("utf-8"))
+        with open(path, "wb") as handle:
+            handle.write(_MAGIC + self._salt + token)
+
+    def import_from(self, path, password: str) -> int:
+        with open(path, "rb") as handle:
+            raw = handle.read()
+        if not raw.startswith(_MAGIC):
+            raise VaultError("Not a valid Vyre export file.")
+        body = raw[len(_MAGIC):]
+        salt, token = body[:16], body[16:]
+        cipher = Cipher.from_password(password, salt)
+        data = json.loads(cipher.decrypt(token).decode("utf-8"))
+        existing = {a.id for a in self.accounts}
+        added = 0
+        for item in data.get("accounts", []):
+            account = Account.from_dict(item)
+            if account.id in existing:
+                continue
+            self.accounts.append(account)
+            existing.add(account.id)
+            added += 1
+        self.save()
+        return added

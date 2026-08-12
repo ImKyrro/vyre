@@ -66,6 +66,7 @@ class BrowserPanel(QWidget):
         self._forward = self._nav_button("›", "Forward", self._go_forward)
         self._reload = self._nav_button("⟳", "Reload", self._reload_page)
         self._home = self._nav_button("⌂", "Home", self._go_home)
+        self._external = self._nav_button("↗", "Open in system browser", self._open_external)
         for button in (self._back, self._forward, self._reload, self._home):
             layout.addWidget(button)
 
@@ -74,6 +75,8 @@ class BrowserPanel(QWidget):
         self._address.setPlaceholderText("Switch to an account to start browsing")
         self._address.setReadOnly(True)
         layout.addWidget(self._address, 1)
+
+        layout.addWidget(self._external)
 
         self._badge = Avatar("V", PALETTE["surface_alt"], 30)
         layout.addWidget(self._badge)
@@ -173,8 +176,18 @@ class BrowserPanel(QWidget):
         self._profiles.pop(account_id, None)
         self._seeded.discard(account_id)
 
+    def open_url(self, url: str) -> None:
+        if self._current:
+            self._view.setUrl(QUrl(url))
+            self._stack.setCurrentWidget(self._view)
+
+    def _open_external(self) -> None:
+        from PySide6.QtGui import QDesktopServices
+
+        QDesktopServices.openUrl(self._view.url())
+
     def _set_nav_enabled(self, enabled: bool) -> None:
-        for button in (self._back, self._forward, self._reload, self._home):
+        for button in (self._back, self._forward, self._reload, self._home, self._external):
             button.setEnabled(enabled)
 
     def _set_loading(self, loading: bool) -> None:

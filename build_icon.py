@@ -5,16 +5,28 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import (
     QBrush,
     QColor,
-    QFont,
     QGuiApplication,
     QLinearGradient,
     QPainter,
     QPainterPath,
     QPen,
     QPixmap,
+    QRadialGradient,
 )
 
 ASSETS = Path(__file__).parent / "vyre" / "assets"
+
+
+def _v_path(size: float) -> QPainterPath:
+    points = [
+        (0.19, 0.25), (0.35, 0.25), (0.50, 0.585),
+        (0.65, 0.25), (0.81, 0.25), (0.50, 0.80),
+    ]
+    path = QPainterPath(QPointF(points[0][0] * size, points[0][1] * size))
+    for x, y in points[1:]:
+        path.lineTo(x * size, y * size)
+    path.closeSubpath()
+    return path
 
 
 def render(size: int) -> QPixmap:
@@ -23,38 +35,60 @@ def render(size: int) -> QPixmap:
 
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    painter.setRenderHint(QPainter.TextAntialiasing)
 
-    radius = size * 0.24
+    radius = size * 0.235
     body = QRectF(0, 0, size, size)
-
-    gradient = QLinearGradient(0, 0, size, size)
-    gradient.setColorAt(0.0, QColor("#8f74ff"))
-    gradient.setColorAt(0.55, QColor("#6a4bf0"))
-    gradient.setColorAt(1.0, QColor("#4b6bff"))
 
     plate = QPainterPath()
     plate.addRoundedRect(body, radius, radius)
-    painter.fillPath(plate, QBrush(gradient))
 
-    sheen = QLinearGradient(0, 0, 0, size)
-    sheen.setColorAt(0.0, QColor(255, 255, 255, 46))
-    sheen.setColorAt(0.5, QColor(255, 255, 255, 0))
-    painter.fillPath(plate, QBrush(sheen))
+    base = QLinearGradient(0, 0, 0, size)
+    base.setColorAt(0.0, QColor("#1a1a1e"))
+    base.setColorAt(1.0, QColor("#0a0a0b"))
+    painter.fillPath(plate, QBrush(base))
 
-    pen = QPen(QColor(255, 255, 255, 235))
-    pen.setWidthF(size * 0.11)
-    pen.setCapStyle(Qt.RoundCap)
-    pen.setJoinStyle(Qt.RoundJoin)
+    glow = QRadialGradient(size * 0.5, size * 0.66, size * 0.55)
+    glow.setColorAt(0.0, QColor(229, 72, 77, 130))
+    glow.setColorAt(0.6, QColor(229, 72, 77, 24))
+    glow.setColorAt(1.0, QColor(229, 72, 77, 0))
+    painter.fillPath(plate, QBrush(glow))
+
+    painter.save()
+    painter.setClipPath(plate)
+    edge = QLinearGradient(0, 0, 0, size)
+    edge.setColorAt(0.0, QColor(255, 255, 255, 40))
+    edge.setColorAt(0.12, QColor(255, 255, 255, 0))
+    pen = QPen(QColor(255, 255, 255, 22))
+    pen.setWidthF(max(size * 0.012, 1.0))
     painter.setPen(pen)
+    painter.setBrush(Qt.NoBrush)
+    painter.drawRoundedRect(body.adjusted(1, 1, -1, -1), radius, radius)
+    painter.restore()
 
-    left = QPointF(size * 0.28, size * 0.30)
-    tip = QPointF(size * 0.50, size * 0.72)
-    right = QPointF(size * 0.72, size * 0.30)
-    path = QPainterPath(left)
-    path.lineTo(tip)
-    path.lineTo(right)
-    painter.drawPath(path)
+    v = _v_path(size)
+
+    shadow = QPainterPath(v)
+    painter.save()
+    painter.translate(0, size * 0.02)
+    painter.fillPath(shadow, QColor(0, 0, 0, 120))
+    painter.restore()
+
+    v_grad = QLinearGradient(0, size * 0.22, 0, size * 0.82)
+    v_grad.setColorAt(0.0, QColor("#ff6b70"))
+    v_grad.setColorAt(0.5, QColor("#e5484d"))
+    v_grad.setColorAt(1.0, QColor("#b5323a"))
+    painter.fillPath(v, QBrush(v_grad))
+
+    highlight = QPainterPath()
+    highlight.moveTo(0.19 * size, 0.25 * size)
+    highlight.lineTo(0.35 * size, 0.25 * size)
+    highlight.lineTo(0.50 * size, 0.585 * size)
+    highlight.lineTo(0.435 * size, 0.585 * size)
+    highlight.closeSubpath()
+    sheen = QLinearGradient(0, 0, size, 0)
+    sheen.setColorAt(0.0, QColor(255, 255, 255, 70))
+    sheen.setColorAt(1.0, QColor(255, 255, 255, 0))
+    painter.fillPath(highlight, QBrush(sheen))
 
     painter.end()
     return pixmap
@@ -63,15 +97,9 @@ def render(size: int) -> QPixmap:
 def main() -> None:
     QGuiApplication(sys.argv)
     ASSETS.mkdir(parents=True, exist_ok=True)
-
     render(512).save(str(ASSETS / "icon.png"), "PNG")
-
-    sizes = [16, 24, 32, 48, 64, 128, 256]
-    frames = [render(size) for size in sizes]
-    icon_path = ASSETS / "icon.ico"
-    frames[-1].save(str(icon_path), "ICO")
-
-    print(f"Wrote {ASSETS / 'icon.png'} and {icon_path}")
+    render(256).save(str(ASSETS / "icon.ico"), "ICO")
+    print(f"Wrote {ASSETS / 'icon.png'} and {ASSETS / 'icon.ico'}")
 
 
 if __name__ == "__main__":
