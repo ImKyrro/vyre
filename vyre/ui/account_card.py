@@ -1,5 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QCheckBox,
     QHBoxLayout,
     QLabel,
     QMenu,
@@ -23,6 +24,7 @@ class AccountCard(QWidget):
     web_requested = Signal(str)
     launch_requested = Signal(str)
     move_requested = Signal(str, int)
+    check_changed = Signal(str, bool)
 
     def __init__(self, account: Account, parent=None):
         super().__init__(parent)
@@ -34,8 +36,13 @@ class AccountCard(QWidget):
         self.setFixedHeight(62)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 8, 6, 8)
-        layout.setSpacing(11)
+        layout.setContentsMargins(8, 8, 6, 8)
+        layout.setSpacing(9)
+
+        self._check = QCheckBox()
+        self._check.setCursor(Qt.PointingHandCursor)
+        self._check.toggled.connect(lambda on: self.check_changed.emit(self.account_id, on))
+        layout.addWidget(self._check, 0, Qt.AlignVCenter)
 
         self._avatar = Avatar(account.initials(), account.color, 40)
         self._avatar.set_status("offline")
@@ -123,6 +130,12 @@ class AccountCard(QWidget):
 
     def name_text(self) -> str:
         return self._name.text()
+
+    def is_checked(self) -> bool:
+        return self._check.isChecked()
+
+    def set_checked(self, value: bool) -> None:
+        self._check.setChecked(value)
 
     def _open_menu(self) -> None:
         menu = QMenu(self)

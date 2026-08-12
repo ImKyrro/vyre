@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..models import Account
+from ..theme import PALETTE
 from .account_card import AccountCard
 
 
@@ -19,6 +20,9 @@ class Sidebar(QWidget):
     bulk_requested = Signal()
     settings_requested = Signal()
     refresh_requested = Signal()
+    support_requested = Signal()
+    tools_requested = Signal()
+    mass_launch_requested = Signal()
     select_requested = Signal(str)
     edit_requested = Signal(str)
     delete_requested = Signal(str)
@@ -32,9 +36,10 @@ class Sidebar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("Sidebar")
-        self.setFixedWidth(304)
+        self.setFixedWidth(310)
         self._cards: dict[str, AccountCard] = {}
         self._active_id: str | None = None
+        self._checked: set[str] = set()
         self._filter = ""
 
         root = QVBoxLayout(self)
@@ -94,6 +99,12 @@ class Sidebar(QWidget):
         self._count.setObjectName("SectionLabel")
         label_row.addWidget(self._count)
         label_row.addStretch(1)
+        self._select_all = QToolButton()
+        self._select_all.setText("☑")
+        self._select_all.setToolTip("Select all / none")
+        self._select_all.setCursor(Qt.PointingHandCursor)
+        self._select_all.clicked.connect(self._toggle_all)
+        label_row.addWidget(self._select_all)
         self._refresh = QToolButton()
         self._refresh.setText("⟳")
         self._refresh.setToolTip("Refresh presence")
@@ -118,6 +129,47 @@ class Sidebar(QWidget):
         self._empty.setAlignment(Qt.AlignCenter)
         self._list.insertWidget(0, self._empty)
 
+        self._action_bar = self._build_action_bar()
+        root.addWidget(self._action_bar)
+
+        footer = QHBoxLayout()
+        footer.setContentsMargins(16, 8, 16, 14)
+        footer.setSpacing(8)
+        support = QPushButton("♥  Support")
+        support.setCursor(Qt.PointingHandCursor)
+        support.clicked.connect(self.support_requested.emit)
+        tools = QPushButton("Roblox tools")
+        tools.setCursor(Qt.PointingHandCursor)
+        tools.clicked.connect(self.tools_requested.emit)
+        footer.addWidget(support, 1)
+        footer.addWidget(tools, 1)
+        root.addLayout(footer)
+
+    def _build_action_bar(self) -> QWidget:
+        bar = QWidget()
+        bar.setStyleSheet(
+            f"background-color: {PALETTE['accent_soft']};"
+            f" border-top: 1px solid {PALETTE['border']};"
+        )
+        layout = QHBoxLayout(bar)
+        layout.setContentsMargins(16, 10, 16, 10)
+        layout.setSpacing(8)
+        self._sel_label = QLabel("0 selected")
+        self._sel_label.setStyleSheet("font-size: 12px; font-weight: 700;")
+        layout.addWidget(self._sel_label)
+        layout.addStretch(1)
+        clear = QPushButton("Clear")
+        clear.setObjectName("Ghost")
+        clear.clicked.connect(self._clear_checks)
+        layout.addWidget(clear)
+        launch = QPushButton("Launch")
+        launch.setObjectName("Primary")
+        launch.setCursor(Qt.PointingHandCursor)
+        launch.clicked.connect(self.mass_launch_requested.emit)
+        layout.addWidget(launch)
+        bar.hide()
+        return bar
+
     def _on_search(self, text: str) -> None:
         self._filter = text.strip().lower()
         self._apply_filter()
@@ -129,13 +181,15 @@ class Sidebar(QWidget):
             card.setVisible(matches)
             if matches:
                 visible += 1
-        self._empty.setVisible(visible == 0 and bool(self._cards) or not self._cards)
+        self._empty.setVisible(not self._cards)
 
     def set_accounts(self, accounts: list[Account]) -> None:
         for card in self._cards.values():
             card.setParent(None)
             card.deleteLater()
         self._cards.clear()
+        self._checked.clear()
+        self._update_action_bar()
 
         for account in accounts:
             card = AccountCard(account)
@@ -148,6 +202,7 @@ class Sidebar(QWidget):
             card.web_requested.connect(self.web_requested.emit)
             card.launch_requested.connect(self.launch_requested.emit)
             card.move_requested.connect(self.move_requested.emit)
+            card.check_changed.connect(self._on_check)
             self._list.insertWidget(self._list.count() - 1, card)
             self._cards[account.id] = card
 
@@ -161,6 +216,32 @@ class Sidebar(QWidget):
         self._active_id = account_id
         for card_id, card in self._cards.items():
             card.set_active(card_id == account_id)
+
+    def _on_check(self, account_id: str, checked: bool) -> None:
+        if checked:
+            self._checked.add(account_id)
+        else:
+            self._checked.discard(account_id)
+        self._update_action_bar()
+
+    def _update_action_bar(self) -> None:
+        count = len(self._checked)
+        self._sel_label.setText(f"{count} selected")
+        self._action_bar.setVisible(count > 0)
+
+    def _clear_checks(self) -> None:
+        for card in self._cards.values():
+            card.set_checked(False)
+        self._checked.clear()
+        self._update_action_bar()
+
+    def _toggle_all(self) -> None:
+        target = len(self._checked) < len(self._cards)
+        for card in self._cards.values():
+            card.set_checked(target)
+
+    def checked_ids(self) -> list[str]:
+        return [cid for cid in self._cards if cid in self._checked]
 
     def update_presence(self, presence: dict, accounts: list[Account]) -> None:
         by_user = {a.user_id: a.id for a in accounts if a.user_id}

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QStackedWidget,
     QToolButton,
     QVBoxLayout,
@@ -25,6 +26,8 @@ _USER_AGENT = (
 
 
 class BrowserPanel(QWidget):
+    back_to_app = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._profiles: dict[str, QWebEngineProfile] = {}
@@ -61,6 +64,13 @@ class BrowserPanel(QWidget):
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(12, 8, 14, 8)
         layout.setSpacing(6)
+
+        self._home_app = QPushButton("‹ Vyre")
+        self._home_app.setObjectName("Ghost")
+        self._home_app.setCursor(Qt.PointingHandCursor)
+        self._home_app.setToolTip("Back to Vyre")
+        self._home_app.clicked.connect(self.back_to_app.emit)
+        layout.addWidget(self._home_app)
 
         self._back = self._nav_button("‹", "Back", self._go_back)
         self._forward = self._nav_button("›", "Forward", self._go_forward)

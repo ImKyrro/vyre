@@ -32,6 +32,19 @@ encrypted vault, embedded Chromium, live presence, and one-click game launching.
 - Join private servers by link or access code
 - Built-in server browser with player counts — pick a server and join
 - Saved games for one-click launching
+- **Multi-select** accounts and mass-launch them into a game, or follow a user /
+  friend into their game, with a configurable stagger between launches
+
+**Multiple instances & window tools** (Roblox tools)
+- Allow more than one Roblox client to run at once (holds the singleton handle)
+- Minimize all, restore all, or tile every open Roblox window into a grid
+- Lower Roblox clients' CPU/GPU priority so background alts stop hogging the machine
+- Close all clients; live count of open windows
+
+**Account upkeep**
+- Auto-fills each account's user id, avatar, and presence in the background
+- Open any account's Roblox account/email settings page in its own session
+- "Back to Vyre" button to return from any web view
 
 **Security & data**
 - Master password encrypts the vault (PBKDF2 + Fernet); cookies never in plaintext
@@ -89,6 +102,16 @@ Everything lives under `%APPDATA%\Vyre`:
 - `vault.dat` — encrypted accounts
 - `config.json` — settings
 - `profiles\` — per-account browser sessions
+
+## Support
+
+Made by **Kyrro**. If Vyre helps you, tips are appreciated (game pass support is
+coming soon):
+
+- Litecoin (LTC): `LSmU3RodML3p2HvwN2wU4HUJZSJddMxUJW`
+- Discord: `kyrro_real`
+
+Open **♥ Support** in the app to copy these.
 
 ## Notes
 

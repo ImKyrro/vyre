@@ -16,6 +16,7 @@ _DEFAULTS = {
     ],
     "open_web_external": False,
     "auto_lock_minutes": 0,
+    "allow_multi_instance": False,
 }
 
 

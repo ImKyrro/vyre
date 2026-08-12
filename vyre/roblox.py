@@ -62,8 +62,9 @@ def _post(url: str, cookie: str, payload: dict, timeout: float = 12.0, extra: di
             "User-Agent": _UA,
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "Cookie": f"{COOKIE_NAME}={normalize_cookie(cookie)}",
         }
+        if cookie:
+            headers["Cookie"] = f"{COOKIE_NAME}={normalize_cookie(cookie)}"
         if csrf:
             headers["X-CSRF-TOKEN"] = csrf
         if extra:
@@ -215,6 +216,25 @@ def get_auth_ticket(cookie: str, timeout: float = 12.0) -> str:
         ticket = resp_headers.get("rbx-authentication-ticket") if resp_headers else ""
         return ticket or ""
     return ""
+
+
+def resolve_username(username: str) -> str:
+    name = (username or "").strip().lstrip("@")
+    if not name:
+        return ""
+    if name.isdigit():
+        return name
+    data = _post(
+        "https://users.roblox.com/v1/usernames/users",
+        "",
+        {"usernames": [name], "excludeBannedUsers": False},
+    )
+    items = data.get("data", [])
+    return str(items[0].get("id")) if items else ""
+
+
+def account_settings_url() -> str:
+    return "https://www.roblox.com/my/account#!/info"
 
 
 def profile_url(user_id: str) -> str:

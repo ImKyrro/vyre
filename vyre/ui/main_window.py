@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import roblox
+from .. import multi_instance, roblox
 from ..config import Config
 from ..models import Account
 from ..storage import Vault
@@ -21,8 +21,11 @@ from .browser import BrowserPanel
 from .bulk_dialog import BulkImportDialog
 from .detail_panel import DetailPanel
 from .launch_dialog import LaunchDialog
+from .mass_launch_dialog import MassLaunchDialog
 from .settings_dialog import SettingsDialog
 from .sidebar import Sidebar
+from .support_dialog import SupportDialog
+from .tools_dialog import ToolsDialog
 from .widgets import Toast
 
 
@@ -38,6 +41,22 @@ class _PresenceWorker(QThread):
         self.done.emit(roblox.fetch_presence(self._cookie, self._user_ids))
 
 
+class _BackfillWorker(QThread):
+    done = Signal(dict)
+
+    def __init__(self, accounts, parent=None):
+        super().__init__(parent)
+        self._items = [(a.id, a.cookie) for a in accounts]
+
+    def run(self) -> None:
+        result = {}
+        for account_id, cookie in self._items:
+            identity = roblox.fetch_identity(cookie)
+            if identity.get("user_id"):
+                result[account_id] = identity
+        self.done.emit(result)
+
+
 class MainWindow(QWidget):
     def __init__(self, vault: Vault, config: Config, icon: QIcon, parent=None):
         super().__init__(parent)
@@ -46,6 +65,7 @@ class MainWindow(QWidget):
         self._icon = icon
         self._selected: str | None = None
         self._presence_worker: _PresenceWorker | None = None
+        self._backfill_worker: _BackfillWorker | None = None
         self._tray: QSystemTrayIcon | None = None
 
         self.setObjectName("Root")
@@ -66,6 +86,7 @@ class MainWindow(QWidget):
         self._detail = DetailPanel()
         self._wire_detail()
         self._browser = BrowserPanel()
+        self._browser.back_to_app.connect(self._back_to_app)
         self._stack.addWidget(self._placeholder)
         self._stack.addWidget(self._detail)
         self._stack.addWidget(self._browser)
@@ -75,10 +96,14 @@ class MainWindow(QWidget):
         self._presence_timer = QTimer(self)
         self._presence_timer.timeout.connect(self._refresh_presence)
 
+        if self._config.get("allow_multi_instance"):
+            multi_instance.enable()
+
         self._refresh()
         self._resize_compact()
         self._apply_config()
-        QTimer.singleShot(600, self._refresh_presence)
+        QTimer.singleShot(400, self._backfill_identities)
+        QTimer.singleShot(1200, self._refresh_presence)
 
     def _wire_sidebar(self) -> None:
         s = self._sidebar
@@ -86,6 +111,9 @@ class MainWindow(QWidget):
         s.bulk_requested.connect(self._bulk_import)
         s.settings_requested.connect(self._open_settings)
         s.refresh_requested.connect(self._refresh_presence)
+        s.support_requested.connect(self._open_support)
+        s.tools_requested.connect(self._open_tools)
+        s.mass_launch_requested.connect(self._mass_launch)
         s.select_requested.connect(self._select_account)
         s.edit_requested.connect(self._edit_account)
         s.delete_requested.connect(self._delete_account)
@@ -104,6 +132,7 @@ class MainWindow(QWidget):
         d.copy_cookie_requested.connect(self._copy_cookie)
         d.copy_profile_requested.connect(self._copy_profile)
         d.edit_requested.connect(self._edit_account)
+        d.settings_web_requested.connect(self._account_settings_web)
         d.join_requested.connect(self._join_game)
 
     def _build_placeholder(self) -> QWidget:
@@ -190,6 +219,7 @@ class MainWindow(QWidget):
             self._vault.add(account)
             self._refresh()
             self._toast.show_message(f"Added {account.name}")
+            self._backfill_identities()
             self._refresh_presence()
 
     def _bulk_import(self) -> None:
@@ -199,6 +229,7 @@ class MainWindow(QWidget):
                 self._vault.add(account)
             self._refresh()
             self._toast.show_message(f"Imported {len(dialog.accounts)} account(s)")
+            self._backfill_identities()
             self._refresh_presence()
 
     def _edit_account(self, account_id: str) -> None:
@@ -359,6 +390,65 @@ class MainWindow(QWidget):
 
     def _on_presence(self, presence: dict) -> None:
         self._sidebar.update_presence(presence, self._vault.accounts)
+
+    def _backfill_identities(self) -> None:
+        pending = [
+            a for a in self._vault.accounts
+            if a.cookie and not a.user_id
+        ]
+        if not pending:
+            return
+        if self._backfill_worker and self._backfill_worker.isRunning():
+            return
+        self._backfill_worker = _BackfillWorker(pending, self)
+        self._backfill_worker.done.connect(self._on_backfill)
+        self._backfill_worker.start()
+
+    def _on_backfill(self, identities: dict) -> None:
+        if not identities:
+            return
+        for account_id, identity in identities.items():
+            account = self._vault.get(account_id)
+            if not account:
+                continue
+            account.user_id = identity["user_id"]
+            account.username = identity.get("username", account.username)
+            account.display_name = identity.get("display_name", account.display_name)
+            self._vault.update(account)
+        self._refresh()
+        self._refresh_presence()
+
+    def _mass_launch(self) -> None:
+        ids = self._sidebar.checked_ids()
+        accounts = [self._vault.get(i) for i in ids]
+        accounts = [a for a in accounts if a and a.cookie]
+        if not accounts:
+            self._toast.show_message("Select accounts first")
+            return
+        MassLaunchDialog(accounts, self._config.get("saved_games"), self).exec()
+
+    def _open_support(self) -> None:
+        SupportDialog(self).exec()
+
+    def _open_tools(self) -> None:
+        ToolsDialog(self._config, self).exec()
+
+    def _account_settings_web(self, account_id: str) -> None:
+        account = self._account_or_warn(account_id)
+        if not account:
+            return
+        self._selected = account_id
+        self._sidebar.set_active(account_id)
+        self._browser.load_account(account)
+        self._browser.open_url(roblox.account_settings_url())
+        self._stack.setCurrentWidget(self._browser)
+
+    def _back_to_app(self) -> None:
+        if self._selected and self._vault.get(self._selected):
+            self._detail.set_account(self._vault.get(self._selected))
+            self._stack.setCurrentWidget(self._detail)
+        else:
+            self._stack.setCurrentWidget(self._placeholder)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)

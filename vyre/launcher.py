@@ -42,6 +42,11 @@ def build_deeplink(place_id: str, job_id: str = "", access_code: str = "", link_
     return f"roblox://experiences/start?{query}"
 
 
+def _follow_launcher_url(user_id: str) -> str:
+    params = {"request": "RequestFollowUser", "userId": user_id}
+    return f"{_PLACE_LAUNCHER}?{urllib.parse.urlencode(params)}"
+
+
 def _place_launcher_url(place_id: str, job_id: str, access_code: str, link_code: str) -> str:
     params = {"placeId": place_id, "isPlayTogetherGame": "false"}
     if job_id:
@@ -101,4 +106,15 @@ def launch_as_account(
     launcher_url = _place_launcher_url(place_id, job_id, access_code, link_code)
     if _open(_client_uri(ticket, launcher_url)):
         return True, "Launching as this account."
+    return False, "Could not start the Roblox client."
+
+
+def follow_user(cookie: str, user_id: str) -> tuple[bool, str]:
+    ticket = roblox.get_auth_ticket(cookie)
+    if not ticket:
+        if _open(f"roblox://experiences/start?userId={user_id}"):
+            return True, "Launched with the Roblox app's current account (ticket unavailable)."
+        return False, "Could not launch. Is Roblox installed?"
+    if _open(_client_uri(ticket, _follow_launcher_url(user_id))):
+        return True, "Joining that user's game."
     return False, "Could not start the Roblox client."

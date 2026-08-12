@@ -50,6 +50,7 @@ class DetailPanel(QWidget):
     copy_cookie_requested = Signal(str)
     copy_profile_requested = Signal(str)
     edit_requested = Signal(str)
+    settings_web_requested = Signal(str)
     join_requested = Signal(str, str, str)
 
     def __init__(self, parent=None):
@@ -117,7 +118,9 @@ class DetailPanel(QWidget):
         copy_cookie.clicked.connect(lambda: self._emit(self.copy_cookie_requested))
         copy_profile = QPushButton("Copy profile link")
         copy_profile.clicked.connect(lambda: self._emit(self.copy_profile_requested))
-        for button in (launch, web, edit, copy_cookie, copy_profile):
+        account_settings = QPushButton("Account && email settings")
+        account_settings.clicked.connect(lambda: self._emit(self.settings_web_requested))
+        for button in (launch, web, edit, copy_cookie, copy_profile, account_settings):
             button.setCursor(Qt.PointingHandCursor)
         actions.addWidget(self._browse, 0, 0)
         actions.addWidget(launch, 0, 1)
@@ -125,6 +128,7 @@ class DetailPanel(QWidget):
         actions.addWidget(edit, 1, 0)
         actions.addWidget(copy_cookie, 1, 1)
         actions.addWidget(copy_profile, 1, 2)
+        actions.addWidget(account_settings, 2, 0)
         outer.addLayout(actions)
 
         self._note = QLabel("")
