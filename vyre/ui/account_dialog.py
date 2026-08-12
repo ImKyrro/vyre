@@ -50,7 +50,7 @@ class _Swatch(QPushButton):
             f" border: {width}px solid {border}; }}"
         )
 
-    def setChecked(self, value: bool) -> None:  # noqa: N802
+    def setChecked(self, value: bool) -> None:
         super().setChecked(value)
         self._apply(value)
 

@@ -116,7 +116,6 @@ class Sidebar(QWidget):
     def _apply_filter(self) -> None:
         visible = 0
         for card in self._cards.values():
-            account = card
             matches = self._filter in card._name.text().lower()
             card.setVisible(matches)
             if matches:
