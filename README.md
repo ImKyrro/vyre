@@ -3,6 +3,13 @@
 A clean, professional Roblox alt account manager for Windows — Onyx/Crimson UI,
 encrypted vault, embedded Chromium, live presence, and one-click game launching.
 
+[![Latest release](https://img.shields.io/github/v/release/ImKyrro/vyre?label=download&color=e5484d)](https://github.com/ImKyrro/vyre/releases/latest)
+
+### ⬇ [Download the latest Vyre.exe](https://github.com/ImKyrro/vyre/releases/latest/download/Vyre.exe)
+
+No install needed — download and run. Windows may show a one-time SmartScreen
+prompt (More info → Run anyway) since the build isn't code-signed yet.
+
 ![Vyre](docs/screenshots/main.png)
 
 <p align="center">
