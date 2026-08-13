@@ -293,3 +293,11 @@ class DetailPanel(QWidget):
             self._friends.set_value(str(stats.get("friends", "—")))
             self._followers.set_value(str(stats.get("followers", "—")))
             self._following.set_value(str(stats.get("following", "—")))
+
+    def paintEvent(self, event):
+        from PySide6.QtGui import QPainter
+        from PySide6.QtWidgets import QStyle, QStyleOption
+        opt = QStyleOption()
+        opt.initFrom(self)
+        p = QPainter(self)
+        self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)

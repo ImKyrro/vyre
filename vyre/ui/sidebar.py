@@ -306,3 +306,11 @@ class Sidebar(QWidget):
 
     def show_update(self, visible: bool) -> None:
         self._update_btn.setVisible(visible)
+
+    def paintEvent(self, event):
+        from PySide6.QtGui import QPainter
+        from PySide6.QtWidgets import QStyle, QStyleOption
+        opt = QStyleOption()
+        opt.initFrom(self)
+        p = QPainter(self)
+        self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)

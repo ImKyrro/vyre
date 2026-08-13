@@ -241,6 +241,14 @@ class TitleBar(QWidget):
     def _close(self, checked: bool = False):
         self.window().close()
 
+    def paintEvent(self, event):
+        from PySide6.QtGui import QPainter
+        from PySide6.QtWidgets import QStyle, QStyleOption
+        opt = QStyleOption()
+        opt.initFrom(self)
+        p = QPainter(self)
+        self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)
+
 
 class MainWindow(QWidget):
     def __init__(self, vault: Vault, config: Config, icon: QIcon, parent=None):
@@ -843,3 +851,11 @@ class MainWindow(QWidget):
             self._tray.showMessage("Vyre", "Still running in the tray.", self._icon, 2000)
         else:
             super().closeEvent(event)
+
+    def paintEvent(self, event):
+        from PySide6.QtGui import QPainter
+        from PySide6.QtWidgets import QStyle, QStyleOption
+        opt = QStyleOption()
+        opt.initFrom(self)
+        p = QPainter(self)
+        self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)

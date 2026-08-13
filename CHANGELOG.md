@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.5
+
+- Fixed QWidget background transparency issues in frameless window mode by adding paintEvent methods to custom widget subclasses
+- Added raw GitHub version checking bypass to fully resolve GitHub API rate-limiting errors
+
 ## 1.1.4
 
 - Added Quick Sign In code copy button to easily copy generated auth codes

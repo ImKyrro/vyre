@@ -1,5 +1,5 @@
 {
-  "version": "1.1.4",
-  "url": "https://github.com/ImKyrro/vyre/releases/download/v1.1.4/Vyre.exe",
-  "notes": "Vyre 1.1.4\n- Added Quick Sign In code copy button to easily copy generated auth codes\n- Fixed Chrome companion extension connection CORS issues\n- Added local /launch_game API endpoint\n- Added rounded window corners and outline\n- Added TitleBar background update downloader with self-restart\n- Added Private Server Link input and saving options on accounts\n- Added detailed step-by-step MCP connection instructions inside Settings"
+  "version": "1.1.5",
+  "url": "https://github.com/ImKyrro/vyre/releases/download/v1.1.5/Vyre.exe",
+  "notes": "Vyre 1.1.5\n- Fixed QWidget background transparency issues in frameless window mode by adding paintEvent methods to custom widget subclasses\n- Added raw GitHub version checking bypass to fully resolve GitHub API rate-limiting errors"
 }

@@ -1,4 +1,8 @@
-TEXT = """Vyre 1.1.4
+TEXT = """Vyre 1.1.5
+- Fixed QWidget background transparency issues in frameless window mode by adding paintEvent methods to custom widget subclasses
+- Added raw GitHub version checking bypass to fully resolve GitHub API rate-limiting errors
+
+Vyre 1.1.4
 - Added Quick Sign In code copy button to easily copy generated auth codes
 - Fixed Chrome companion extension "Could not connect to Vyre" by implementing CORS preflight and endpoint headers
 - Added local /launch_game API endpoint enabling Roblox game launching directly from companion extension
