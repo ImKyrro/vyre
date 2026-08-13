@@ -4,7 +4,7 @@ import urllib.request
 
 from . import __version__
 
-UPDATE_URL = "https://api.github.com/repos/ImKyrro/vyre/releases/latest"
+UPDATE_URL = "https://raw.githubusercontent.com/ImKyrro/vyre/main/version.json"
 
 
 def _parse(version: str) -> tuple:
