@@ -84,6 +84,12 @@ def _post(url: str, cookie: str, payload: dict, timeout: float = 12.0, extra: di
     return {}
 
 
+def check_cookie(cookie: str, timeout: float = 12.0) -> bool:
+    if not is_valid_cookie(cookie):
+        return False
+    return bool(fetch_identity(cookie, timeout).get("user_id"))
+
+
 def fetch_identity(cookie: str, timeout: float = 12.0) -> dict:
     data = _get(AUTH_API, cookie, timeout)
     if not data:

@@ -52,10 +52,11 @@ class _MassWorker(QThread):
 
 
 class MassLaunchDialog(QDialog):
-    def __init__(self, accounts: list[Account], saved_games: list, parent=None):
+    def __init__(self, accounts: list[Account], saved_games: list, config=None, parent=None):
         super().__init__(parent)
         self._accounts = accounts
         self._saved = saved_games or []
+        self._config = config
         self._worker: _MassWorker | None = None
 
         self.setWindowTitle("Launch selected accounts")
@@ -116,10 +117,15 @@ class MassLaunchDialog(QDialog):
         delay_row.addStretch(1)
         root.addLayout(delay_row)
 
-        self._multi = QCheckBox("Enable multiple instances now (needed to run more than one)")
-        self._multi.setChecked(multi_instance.is_enabled())
+        self._multi = QCheckBox("Allow multiple instances (needed to run more than one)")
+        self._multi.setChecked(True)
         self._multi.setEnabled(multi_instance.is_supported())
         root.addWidget(self._multi)
+
+        warn = QLabel("Close any Roblox windows already open before launching, or the first one may get replaced.")
+        warn.setObjectName("Faint")
+        warn.setWordWrap(True)
+        root.addWidget(warn)
 
         self._status = QLabel("")
         self._status.setObjectName("StatusText")
@@ -151,6 +157,9 @@ class MassLaunchDialog(QDialog):
     def _start(self) -> None:
         if self._multi.isChecked():
             multi_instance.enable()
+            if self._config is not None:
+                self._config.set("allow_multi_instance", True)
+                self._config.save()
         if self._mode_user.isChecked():
             user_id = roblox.resolve_username(self._user.text())
             if not user_id:

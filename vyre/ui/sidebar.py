@@ -1,10 +1,12 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QPushButton,
-    QScrollArea,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -23,6 +25,7 @@ class Sidebar(QWidget):
     support_requested = Signal()
     tools_requested = Signal()
     mass_launch_requested = Signal()
+    reorder_requested = Signal(list)
     select_requested = Signal(str)
     edit_requested = Signal(str)
     delete_requested = Signal(str)
@@ -31,6 +34,7 @@ class Sidebar(QWidget):
     duplicate_requested = Signal(str)
     web_requested = Signal(str)
     launch_requested = Signal(str)
+    health_requested = Signal(str)
     move_requested = Signal(str, int)
 
     def __init__(self, parent=None):
@@ -38,9 +42,11 @@ class Sidebar(QWidget):
         self.setObjectName("Sidebar")
         self.setFixedWidth(310)
         self._cards: dict[str, AccountCard] = {}
+        self._items: dict[str, QListWidgetItem] = {}
         self._active_id: str | None = None
         self._checked: set[str] = set()
         self._filter = ""
+        self._suspend_reorder = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -113,21 +119,28 @@ class Sidebar(QWidget):
         label_row.addWidget(self._refresh)
         root.addLayout(label_row)
 
-        self._scroll = QScrollArea()
-        self._scroll.setWidgetResizable(True)
-        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        container = QWidget()
-        self._list = QVBoxLayout(container)
-        self._list.setContentsMargins(10, 4, 10, 16)
-        self._list.setSpacing(3)
-        self._list.addStretch(1)
-        self._scroll.setWidget(container)
-        root.addWidget(self._scroll, 1)
+        self._list = QListWidget()
+        self._list.setObjectName("AccountList")
+        self._list.setSelectionMode(QAbstractItemView.SingleSelection)
+        self._list.setDragDropMode(QAbstractItemView.InternalMove)
+        self._list.setDefaultDropAction(Qt.MoveAction)
+        self._list.setDropIndicatorShown(True)
+        self._list.setFocusPolicy(Qt.NoFocus)
+        self._list.setSpacing(2)
+        self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._list.setStyleSheet(
+            "QListWidget#AccountList { background: transparent; border: none; }"
+            "QListWidget#AccountList::item { border: none; }"
+            "QListWidget#AccountList::item:selected { background: transparent; }"
+        )
+        self._list.itemClicked.connect(self._on_item_clicked)
+        self._list.model().rowsMoved.connect(self._on_rows_moved)
+        root.addWidget(self._list, 1)
 
         self._empty = QLabel("No accounts yet.\nAdd one to get started.")
         self._empty.setObjectName("Faint")
         self._empty.setAlignment(Qt.AlignCenter)
-        self._list.insertWidget(0, self._empty)
+        root.addWidget(self._empty)
 
         self._action_bar = self._build_action_bar()
         root.addWidget(self._action_bar)
@@ -175,47 +188,73 @@ class Sidebar(QWidget):
         self._apply_filter()
 
     def _apply_filter(self) -> None:
-        visible = 0
-        for card in self._cards.values():
-            matches = self._filter in card.name_text().lower()
-            card.setVisible(matches)
-            if matches:
-                visible += 1
-        self._empty.setVisible(not self._cards)
+        for account_id, item in self._items.items():
+            card = self._cards.get(account_id)
+            matches = bool(card) and self._filter in card.name_text().lower()
+            item.setHidden(not matches)
+
+    def _connect_card(self, card: AccountCard) -> None:
+        card.select_requested.connect(self.select_requested.emit)
+        card.edit_requested.connect(self.edit_requested.emit)
+        card.delete_requested.connect(self.delete_requested.emit)
+        card.copy_requested.connect(self.copy_requested.emit)
+        card.favorite_requested.connect(self.favorite_requested.emit)
+        card.duplicate_requested.connect(self.duplicate_requested.emit)
+        card.web_requested.connect(self.web_requested.emit)
+        card.launch_requested.connect(self.launch_requested.emit)
+        card.health_requested.connect(self.health_requested.emit)
+        card.move_requested.connect(self.move_requested.emit)
+        card.check_changed.connect(self._on_check)
 
     def set_accounts(self, accounts: list[Account]) -> None:
-        for card in self._cards.values():
-            card.setParent(None)
-            card.deleteLater()
+        self._suspend_reorder = True
+        self._list.clear()
         self._cards.clear()
+        self._items.clear()
         self._checked.clear()
         self._update_action_bar()
 
         for account in accounts:
             card = AccountCard(account)
-            card.select_requested.connect(self.select_requested.emit)
-            card.edit_requested.connect(self.edit_requested.emit)
-            card.delete_requested.connect(self.delete_requested.emit)
-            card.copy_requested.connect(self.copy_requested.emit)
-            card.favorite_requested.connect(self.favorite_requested.emit)
-            card.duplicate_requested.connect(self.duplicate_requested.emit)
-            card.web_requested.connect(self.web_requested.emit)
-            card.launch_requested.connect(self.launch_requested.emit)
-            card.move_requested.connect(self.move_requested.emit)
-            card.check_changed.connect(self._on_check)
-            self._list.insertWidget(self._list.count() - 1, card)
+            self._connect_card(card)
+            item = QListWidgetItem()
+            item.setSizeHint(QSize(0, 64))
+            item.setData(Qt.UserRole, account.id)
+            self._list.addItem(item)
+            self._list.setItemWidget(item, card)
             self._cards[account.id] = card
+            self._items[account.id] = item
 
         self._count.setText(str(len(accounts)))
         self._empty.setVisible(len(accounts) == 0)
+        self._list.setVisible(len(accounts) > 0)
         if self._active_id:
             self.set_active(self._active_id)
         self._apply_filter()
+        self._suspend_reorder = False
+
+    def _on_item_clicked(self, item: QListWidgetItem) -> None:
+        account_id = item.data(Qt.UserRole)
+        if account_id:
+            self.select_requested.emit(account_id)
+
+    def _on_rows_moved(self, *args) -> None:
+        if self._suspend_reorder:
+            return
+        order = []
+        for row in range(self._list.count()):
+            order.append(self._list.item(row).data(Qt.UserRole))
+        QTimer.singleShot(0, lambda: self.reorder_requested.emit(order))
 
     def set_active(self, account_id: str | None) -> None:
         self._active_id = account_id
         for card_id, card in self._cards.items():
             card.set_active(card_id == account_id)
+
+    def set_health(self, account_id: str, valid: bool) -> None:
+        card = self._cards.get(account_id)
+        if card:
+            card.set_health(valid)
 
     def _on_check(self, account_id: str, checked: bool) -> None:
         if checked:

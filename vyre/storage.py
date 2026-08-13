@@ -93,6 +93,11 @@ class Vault:
     def sorted_accounts(self) -> List[Account]:
         return sorted(self.accounts, key=lambda a: (not a.favorite,))
 
+    def set_order(self, ordered_ids: List[str]) -> None:
+        rank = {account_id: index for index, account_id in enumerate(ordered_ids)}
+        self.accounts.sort(key=lambda a: rank.get(a.id, len(rank)))
+        self.save()
+
     def change_password(self, new_password: str) -> None:
         if not new_password:
             raise VaultError("Master password cannot be empty.")

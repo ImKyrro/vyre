@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import multi_instance, roblox
+from .. import __version__, multi_instance, roblox, updater
 from ..config import Config
 from ..models import Account
 from ..storage import Vault
@@ -26,7 +26,7 @@ from .settings_dialog import SettingsDialog
 from .sidebar import Sidebar
 from .support_dialog import SupportDialog
 from .tools_dialog import ToolsDialog
-from .widgets import Toast
+from .widgets import Toast, set_hide_images
 
 
 class _PresenceWorker(QThread):
@@ -57,6 +57,31 @@ class _BackfillWorker(QThread):
         self.done.emit(result)
 
 
+class _HealthWorker(QThread):
+    done = Signal(dict)
+
+    def __init__(self, accounts, parent=None):
+        super().__init__(parent)
+        self._items = [(a.id, a.name, a.cookie) for a in accounts]
+
+    def run(self) -> None:
+        result = {}
+        for account_id, _, cookie in self._items:
+            result[account_id] = roblox.check_cookie(cookie)
+        self.done.emit(result)
+
+
+class _UpdateWorker(QThread):
+    done = Signal(dict)
+
+    def __init__(self, url: str, parent=None):
+        super().__init__(parent)
+        self._url = url
+
+    def run(self) -> None:
+        self.done.emit(updater.check(self._url))
+
+
 class MainWindow(QWidget):
     def __init__(self, vault: Vault, config: Config, icon: QIcon, parent=None):
         super().__init__(parent)
@@ -66,6 +91,7 @@ class MainWindow(QWidget):
         self._selected: str | None = None
         self._presence_worker: _PresenceWorker | None = None
         self._backfill_worker: _BackfillWorker | None = None
+        self._health_worker: _HealthWorker | None = None
         self._tray: QSystemTrayIcon | None = None
 
         self.setObjectName("Root")
@@ -83,7 +109,7 @@ class MainWindow(QWidget):
 
         self._stack = QStackedWidget()
         self._placeholder = self._build_placeholder()
-        self._detail = DetailPanel()
+        self._detail = DetailPanel(self._config)
         self._wire_detail()
         self._browser = BrowserPanel()
         self._browser.back_to_app.connect(self._back_to_app)
@@ -99,11 +125,14 @@ class MainWindow(QWidget):
         if self._config.get("allow_multi_instance"):
             multi_instance.enable()
 
+        set_hide_images(bool(self._config.get("hide_images")))
         self._refresh()
         self._resize_compact()
         self._apply_config()
         QTimer.singleShot(400, self._backfill_identities)
         QTimer.singleShot(1200, self._refresh_presence)
+        if self._config.get("check_updates") and self._config.get("update_url"):
+            QTimer.singleShot(2500, self._check_updates)
 
     def _wire_sidebar(self) -> None:
         s = self._sidebar
@@ -114,6 +143,8 @@ class MainWindow(QWidget):
         s.support_requested.connect(self._open_support)
         s.tools_requested.connect(self._open_tools)
         s.mass_launch_requested.connect(self._mass_launch)
+        s.reorder_requested.connect(self._reorder)
+        s.health_requested.connect(self._check_health)
         s.select_requested.connect(self._select_account)
         s.edit_requested.connect(self._edit_account)
         s.delete_requested.connect(self._delete_account)
@@ -162,12 +193,13 @@ class MainWindow(QWidget):
         )
 
     def _refresh(self) -> None:
-        self._sidebar.set_accounts(self._vault.accounts)
+        self._sidebar.set_accounts(self._vault.sorted_accounts())
         if not self._vault.accounts:
             self._stack.setCurrentWidget(self._placeholder)
             self._selected = None
 
     def _apply_config(self) -> None:
+        set_hide_images(bool(self._config.get("hide_images")))
         self._presence_timer.stop()
         if self._config.get("presence_auto_refresh"):
             interval = max(15, int(self._config.get("presence_interval"))) * 1000
@@ -368,11 +400,15 @@ class MainWindow(QWidget):
     def _open_settings(self) -> None:
         dialog = SettingsDialog(self._config, self._vault, self)
         dialog.applied.connect(self._on_settings_applied)
+        dialog.check_cookies_requested.connect(self._check_all_health)
+        dialog.check_updates_requested.connect(self._check_updates)
         dialog.exec()
 
     def _on_settings_applied(self) -> None:
-        self._refresh()
         self._apply_config()
+        self._refresh()
+        if self._selected and self._vault.get(self._selected):
+            self._detail.set_account(self._vault.get(self._selected))
 
     def _refresh_presence(self) -> None:
         accounts = [a for a in self._vault.accounts if a.user_id]
@@ -418,6 +454,66 @@ class MainWindow(QWidget):
         self._refresh()
         self._refresh_presence()
 
+    def _reorder(self, ordered_ids: list) -> None:
+        self._vault.set_order(ordered_ids)
+
+    def _check_updates(self) -> None:
+        url = self._config.get("update_url")
+        if not url:
+            self._toast.show_message("Set an update URL in Settings")
+            return
+        self._update_worker = _UpdateWorker(url, self)
+        self._update_worker.done.connect(self._on_update)
+        self._update_worker.start()
+
+    def _on_update(self, info: dict) -> None:
+        if not info:
+            return
+        box = QMessageBox(self)
+        box.setWindowTitle("Update available")
+        box.setText(f"Vyre {info['version']} is available (you have {__version__}).")
+        if info.get("notes"):
+            box.setInformativeText(info["notes"][:400])
+        box.setStandardButtons(QMessageBox.Ok | QMessageBox.Open)
+        if box.exec() == QMessageBox.Open and info.get("url"):
+            from PySide6.QtCore import QUrl
+            from PySide6.QtGui import QDesktopServices
+
+            QDesktopServices.openUrl(QUrl(info["url"]))
+
+    def _check_health(self, account_id: str) -> None:
+        account = self._account_or_warn(account_id)
+        if not account:
+            return
+        self._toast.show_message(f"Checking {account.name}…")
+        self._run_health([account])
+
+    def _check_all_health(self) -> None:
+        accounts = [a for a in self._vault.accounts if a.cookie]
+        if not accounts:
+            return
+        self._toast.show_message(f"Checking {len(accounts)} cookies…")
+        self._run_health(accounts)
+
+    def _run_health(self, accounts: list) -> None:
+        if self._health_worker and self._health_worker.isRunning():
+            return
+        self._health_worker = _HealthWorker(accounts, self)
+        self._health_worker.done.connect(self._on_health)
+        self._health_worker.start()
+
+    def _on_health(self, results: dict) -> None:
+        expired = 0
+        for account_id, valid in results.items():
+            self._sidebar.set_health(account_id, valid)
+            if not valid:
+                expired += 1
+        if len(results) == 1:
+            valid = next(iter(results.values()))
+            self._toast.show_message("Cookie is valid" if valid else "Cookie has expired")
+        else:
+            self._toast.show_message(f"{len(results) - expired} valid, {expired} expired")
+
     def _mass_launch(self) -> None:
         ids = self._sidebar.checked_ids()
         accounts = [self._vault.get(i) for i in ids]
@@ -425,7 +521,7 @@ class MainWindow(QWidget):
         if not accounts:
             self._toast.show_message("Select accounts first")
             return
-        MassLaunchDialog(accounts, self._config.get("saved_games"), self).exec()
+        MassLaunchDialog(accounts, self._config.get("saved_games"), self._config, self).exec()
 
     def _open_support(self) -> None:
         SupportDialog(self).exec()

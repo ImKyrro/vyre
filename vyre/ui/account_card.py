@@ -23,6 +23,7 @@ class AccountCard(QWidget):
     duplicate_requested = Signal(str)
     web_requested = Signal(str)
     launch_requested = Signal(str)
+    health_requested = Signal(str)
     move_requested = Signal(str, int)
     check_changed = Signal(str, bool)
 
@@ -32,7 +33,7 @@ class AccountCard(QWidget):
         self._favorite = account.favorite
         self._username = account.username
         self._active = False
-        self.setCursor(Qt.PointingHandCursor)
+        self._expired = False
         self.setFixedHeight(62)
 
         layout = QHBoxLayout(self)
@@ -47,10 +48,7 @@ class AccountCard(QWidget):
         self._avatar = Avatar(account.initials(), account.color, 40)
         self._avatar.set_status("offline")
         if account.user_id:
-            self._avatar.set_image_url(
-                f"https://thumbnails.roblox.com/v1/users/avatar-headshot"
-                f"?userIds={account.user_id}&size=150x150&format=Png&isCircular=false"
-            )
+            self._avatar.set_image_url(self._headshot(account.user_id))
         layout.addWidget(self._avatar)
 
         text = QVBoxLayout()
@@ -78,6 +76,12 @@ class AccountCard(QWidget):
 
         self._refresh_style()
 
+    def _headshot(self, user_id: str) -> str:
+        return (
+            "https://thumbnails.roblox.com/v1/users/avatar-headshot"
+            f"?userIds={user_id}&size=150x150&format=Png&isCircular=false"
+        )
+
     def set_active(self, active: bool) -> None:
         self._active = active
         self._refresh_style()
@@ -87,14 +91,13 @@ class AccountCard(QWidget):
         self._username = account.username
         self._avatar.update_data(account.initials(), account.color)
         if account.user_id:
-            self._avatar.set_image_url(
-                f"https://thumbnails.roblox.com/v1/users/avatar-headshot"
-                f"?userIds={account.user_id}&size=150x150&format=Png&isCircular=false"
-            )
+            self._avatar.set_image_url(self._headshot(account.user_id))
         self._name.setText(account.name)
         self._render_star()
 
     def update_presence(self, kind: str, label: str, location: str) -> None:
+        if self._expired:
+            return
         self._avatar.set_status(kind)
         if kind in ("ingame", "online", "studio"):
             detail = location if (kind == "ingame" and location) else label
@@ -104,6 +107,16 @@ class AccountCard(QWidget):
         else:
             self._sub.setText(self._username or "Offline")
             self._sub.setStyleSheet(f"color: {PALETTE['text_faint']}; font-size: 11px;")
+
+    def set_health(self, valid: bool) -> None:
+        self._expired = not valid
+        if valid:
+            self._sub.setText(self._username or "Verified")
+            self._sub.setStyleSheet(f"color: {PALETTE['online']}; font-size: 11px;")
+        else:
+            self._avatar.set_status("offline")
+            self._sub.setText("Session expired")
+            self._sub.setStyleSheet(f"color: {PALETTE['danger']}; font-size: 11px; font-weight: 600;")
 
     def _render_star(self) -> None:
         self._star.setText("★" if self._favorite else "☆")
@@ -123,11 +136,6 @@ class AccountCard(QWidget):
                 f"AccountCard:hover {{ background-color: {PALETTE['surface_alt']}; }}"
             )
 
-    def mousePressEvent(self, event) -> None:
-        if event.button() == Qt.LeftButton:
-            self.select_requested.emit(self.account_id)
-        super().mousePressEvent(event)
-
     def name_text(self) -> str:
         return self._name.text()
 
@@ -142,6 +150,7 @@ class AccountCard(QWidget):
         menu.addAction("Open", lambda: self.select_requested.emit(self.account_id))
         menu.addAction("Launch a game", lambda: self.launch_requested.emit(self.account_id))
         menu.addAction("View profile on web", lambda: self.web_requested.emit(self.account_id))
+        menu.addAction("Check cookie", lambda: self.health_requested.emit(self.account_id))
         menu.addSeparator()
         menu.addAction("Edit", lambda: self.edit_requested.emit(self.account_id))
         menu.addAction("Duplicate", lambda: self.duplicate_requested.emit(self.account_id))

@@ -1,4 +1,6 @@
-from PySide6.QtCore import QByteArray, QRectF, Qt, QTimer, Signal
+import json
+
+from PySide6.QtCore import QByteArray, QRectF, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PySide6.QtWidgets import (
@@ -13,6 +15,12 @@ from PySide6.QtWidgets import (
 from ..theme import PALETTE, status_color
 
 _cache: dict[str, QPixmap] = {}
+HIDE_IMAGES = False
+
+
+def set_hide_images(value: bool) -> None:
+    global HIDE_IMAGES
+    HIDE_IMAGES = value
 
 
 class _Loader:
@@ -30,20 +38,45 @@ class _Loader:
             self._pending[url].append(callback)
             return
         self._pending[url] = [callback]
-        reply = self._manager.get(QNetworkRequest(url))
+        reply = self._manager.get(QNetworkRequest(QUrl(url)))
         reply.finished.connect(lambda: self._done(url, reply))
 
     def _done(self, url: str, reply) -> None:
-        data = reply.readAll()
+        raw = bytes(reply.readAll())
         reply.deleteLater()
-        pixmap = QPixmap()
-        pixmap.loadFromData(QByteArray(data))
         callbacks = self._pending.pop(url, [])
+
+        if "thumbnails.roblox.com" in url:
+            image_url = self._extract_image_url(raw)
+            if image_url:
+                self._chain(url, image_url, callbacks)
+            return
+
+        pixmap = QPixmap()
+        pixmap.loadFromData(QByteArray(raw))
         if pixmap.isNull():
             return
         _cache[url] = pixmap
         for callback in callbacks:
             callback(pixmap)
+
+    def _extract_image_url(self, raw: bytes) -> str:
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+            items = payload.get("data", [])
+            if items and items[0].get("state") == "Completed":
+                return items[0].get("imageUrl", "")
+        except (ValueError, KeyError, IndexError):
+            return ""
+        return ""
+
+    def _chain(self, api_url: str, image_url: str, callbacks) -> None:
+        def relay(pixmap):
+            _cache[api_url] = pixmap
+            for callback in callbacks:
+                callback(pixmap)
+
+        self.load(image_url, relay)
 
 
 _loader = _Loader()
@@ -65,7 +98,7 @@ class Avatar(QWidget):
         self.update()
 
     def set_image_url(self, url: str) -> None:
-        if not url:
+        if not url or HIDE_IMAGES:
             return
         _loader.load(url, self._set_pixmap)
 
@@ -87,7 +120,7 @@ class Avatar(QWidget):
         clip.addEllipse(rect)
         painter.setClipPath(clip)
 
-        if self._pixmap and not self._pixmap.isNull():
+        if self._pixmap and not self._pixmap.isNull() and not HIDE_IMAGES:
             scaled = self._pixmap.scaled(
                 d, d, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation
             )

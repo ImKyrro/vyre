@@ -32,6 +32,8 @@ from ..theme import PALETTE
 
 class SettingsDialog(QDialog):
     applied = Signal()
+    check_cookies_requested = Signal()
+    check_updates_requested = Signal()
 
     def __init__(self, config: Config, vault: Vault, parent=None):
         super().__init__(parent)
@@ -56,6 +58,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._games_tab(), "Saved games")
         tabs.addTab(self._data_tab(), "Data")
         tabs.addTab(self._mcp_tab(), "MCP")
+        tabs.addTab(self._about_tab(), "About")
         root.addWidget(tabs, 1)
 
         buttons = QHBoxLayout()
@@ -92,6 +95,14 @@ class SettingsDialog(QDialog):
         self._web_external = QCheckBox("Open 'View on web' in my default browser")
         self._web_external.setChecked(self._config.get("open_web_external"))
         layout.addWidget(self._web_external)
+
+        self._hide_images = QCheckBox("Hide avatars (show initials only)")
+        self._hide_images.setChecked(self._config.get("hide_images"))
+        layout.addWidget(self._hide_images)
+
+        self._hide_info = QCheckBox("Hide account info (stats, user id, username)")
+        self._hide_info.setChecked(self._config.get("hide_info"))
+        layout.addWidget(self._hide_info)
 
         layout.addSpacing(6)
         layout.addWidget(self._label("Presence"))
@@ -210,6 +221,10 @@ class SettingsDialog(QDialog):
         folder.clicked.connect(lambda: system.open_folder(BASE_DIR))
         layout.addWidget(folder, alignment=Qt.AlignLeft)
 
+        check = QPushButton("Check all cookies")
+        check.clicked.connect(self.check_cookies_requested.emit)
+        layout.addWidget(check, alignment=Qt.AlignLeft)
+
         clear = QPushButton("Clear all browser sessions")
         clear.setObjectName("Danger")
         clear.clicked.connect(self._clear_sessions)
@@ -259,6 +274,44 @@ class SettingsDialog(QDialog):
         layout.addWidget(copy, alignment=Qt.AlignLeft)
         layout.addStretch(1)
         return widget
+
+    def _about_tab(self) -> QWidget:
+        from .. import __version__
+
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(10)
+
+        version = QLabel(f"Vyre {__version__}")
+        version.setObjectName("H2")
+        layout.addWidget(version)
+
+        maker = QLabel("Made by Kyrro — Roblox alt account manager.")
+        maker.setObjectName("Muted")
+        layout.addWidget(maker)
+
+        layout.addSpacing(8)
+        layout.addWidget(self._label("Update source URL"))
+        self._update_url = QLineEdit(self._config.get("update_url"))
+        self._update_url.setPlaceholderText("https://…/latest.json or a GitHub releases/latest API URL")
+        layout.addWidget(self._update_url)
+
+        self._check_updates = QCheckBox("Check for updates on startup")
+        self._check_updates.setChecked(bool(self._config.get("check_updates")))
+        layout.addWidget(self._check_updates)
+
+        check = QPushButton("Check for updates now")
+        check.clicked.connect(self._save_then_check_updates)
+        layout.addWidget(check, alignment=Qt.AlignLeft)
+        layout.addStretch(1)
+        return widget
+
+    def _save_then_check_updates(self) -> None:
+        self._config.set("update_url", self._update_url.text().strip())
+        self._config.set("check_updates", self._check_updates.isChecked())
+        self._config.save()
+        self.check_updates_requested.emit()
 
     def _change_password(self) -> None:
         first, ok = QInputDialog.getText(
@@ -334,6 +387,10 @@ class SettingsDialog(QDialog):
             "presence_interval": self._interval.value(),
             "auto_lock_minutes": self._auto_lock.value(),
             "saved_games": games,
+            "update_url": self._update_url.text().strip(),
+            "check_updates": self._check_updates.isChecked(),
+            "hide_images": self._hide_images.isChecked(),
+            "hide_info": self._hide_info.isChecked(),
         })
         self._config.save()
         system.set_autostart(self._autostart.isChecked())

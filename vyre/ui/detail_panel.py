@@ -24,23 +24,29 @@ class _DetailWorker(QThread):
         self._user_id = account.user_id
 
     def run(self) -> None:
-        result = {}
+        first = {}
         if not self._user_id:
             identity = roblox.fetch_identity(self._cookie)
             if identity:
                 self._user_id = identity["user_id"]
-                result["identity"] = identity
+                first["identity"] = identity
+        info = {}
         if self._user_id:
             presence = roblox.fetch_presence(self._cookie, [self._user_id])
-            info = presence.get(self._user_id, {})
-            result["presence"] = info
-            result["stats"] = roblox.fetch_stats(self._user_id)
-            place = info.get("root_place_id") or info.get("place_id")
-            if info.get("kind") == "ingame" and place:
-                result["game"] = roblox.fetch_game_info(str(place))
-                result["game"]["place_id"] = str(place)
-                result["game"]["job_id"] = info.get("game_id") or ""
-        self.done.emit(self._id, result)
+            info = presence.get(self._user_id, {"kind": "offline", "label": "Offline"})
+            first["presence"] = info
+        self.done.emit(self._id, first)
+
+        if not self._user_id:
+            return
+        extra = {"stats": roblox.fetch_stats(self._user_id)}
+        place = info.get("root_place_id") or info.get("place_id")
+        if info.get("kind") == "ingame" and place:
+            game = roblox.fetch_game_info(str(place))
+            game["place_id"] = str(place)
+            game["job_id"] = info.get("game_id") or ""
+            extra["game"] = game
+        self.done.emit(self._id, extra)
 
 
 class DetailPanel(QWidget):
@@ -53,9 +59,10 @@ class DetailPanel(QWidget):
     settings_web_requested = Signal(str)
     join_requested = Signal(str, str, str)
 
-    def __init__(self, parent=None):
+    def __init__(self, config=None, parent=None):
         super().__init__(parent)
         self.setObjectName("DetailPane")
+        self._config = config
         self._account: Account | None = None
         self._worker: _DetailWorker | None = None
         self._join = ("", "")
@@ -91,7 +98,9 @@ class DetailPanel(QWidget):
         head.addLayout(info, 1)
         outer.addLayout(head)
 
-        stats = QHBoxLayout()
+        self._stats_row = QWidget()
+        stats = QHBoxLayout(self._stats_row)
+        stats.setContentsMargins(0, 0, 0, 0)
         stats.setSpacing(12)
         self._friends = StatChip("—", "Friends")
         self._followers = StatChip("—", "Followers")
@@ -100,7 +109,7 @@ class DetailPanel(QWidget):
         for chip in (self._friends, self._followers, self._following, self._uid):
             stats.addWidget(chip)
         stats.addStretch(1)
-        outer.addLayout(stats)
+        outer.addWidget(self._stats_row)
 
         actions = QGridLayout()
         actions.setSpacing(10)
@@ -145,10 +154,15 @@ class DetailPanel(QWidget):
         if self._account and self._join[0]:
             self.join_requested.emit(self._account.id, self._join[0], self._join[1])
 
+    def _hide_info(self) -> bool:
+        return bool(self._config and self._config.get("hide_info"))
+
     def set_account(self, account: Account) -> None:
         self._account = account
         self._join = ("", "")
         self._join_btn.hide()
+        self._stats_row.setVisible(not self._hide_info())
+        self._handle.setVisible(not self._hide_info())
         self._avatar.update_data(account.initials(), account.color)
         self._avatar.set_status("offline")
         if account.user_id:
@@ -173,29 +187,30 @@ class DetailPanel(QWidget):
     def _on_data(self, account_id: str, data: dict) -> None:
         if not self._account or self._account.id != account_id:
             return
-        presence = data.get("presence", {})
-        kind = presence.get("kind", "offline")
-        self._avatar.set_status(kind)
-        label = presence.get("label", "Offline")
-        color = PALETTE["online"] if kind in ("online", "ingame") else (
-            PALETTE["studio"] if kind == "studio" else PALETTE["text_faint"]
-        )
+        identity = data.get("identity", {})
+        if identity:
+            self._uid.set_value(identity.get("user_id", "—"))
+
+        if "presence" in data:
+            presence = data["presence"]
+            kind = presence.get("kind", "offline")
+            self._avatar.set_status(kind)
+            label = presence.get("label", "Offline")
+            color = PALETTE["online"] if kind in ("online", "ingame") else (
+                PALETTE["studio"] if kind == "studio" else PALETTE["text_faint"]
+            )
+            self._presence.setText(f"● {label}")
+            self._presence.setStyleSheet(f"color: {color}; font-size: 13px; font-weight: 600;")
+
         game = data.get("game", {})
-        if kind == "ingame" and game.get("name"):
+        if game.get("name"):
             self._presence.setText(f"● In game — {game['name']}")
+            self._presence.setStyleSheet(f"color: {PALETTE['online']}; font-size: 13px; font-weight: 600;")
             self._join = (game.get("place_id", ""), game.get("job_id", ""))
             self._join_btn.show()
-        elif kind == "ingame":
-            self._presence.setText(f"● {presence.get('location') or 'In game'}")
-        else:
-            self._presence.setText(f"● {label}")
-        self._presence.setStyleSheet(f"color: {color}; font-size: 13px; font-weight: 600;")
 
         stats = data.get("stats", {})
         if stats:
             self._friends.set_value(str(stats.get("friends", "—")))
             self._followers.set_value(str(stats.get("followers", "—")))
             self._following.set_value(str(stats.get("following", "—")))
-        identity = data.get("identity", {})
-        if identity:
-            self._uid.set_value(identity.get("user_id", "—"))
