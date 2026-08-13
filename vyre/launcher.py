@@ -90,11 +90,6 @@ def spoof_roblox_hwid() -> None:
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\RobloxSpaceGroup") as key:
             winreg.SetValueEx(key, "HardwareID", 0, winreg.REG_SZ, clean_guid)
             winreg.SetValueEx(key, "DeviceID", 0, winreg.REG_SZ, clean_guid)
-        try:
-            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography", 0, winreg.KEY_SET_VALUE) as key:
-                winreg.SetValueEx(key, "MachineGuid", 0, winreg.REG_SZ, clean_guid)
-        except OSError:
-            pass
     except (ImportError, OSError):
         pass
 
