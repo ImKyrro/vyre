@@ -513,9 +513,9 @@ class MainWindow(QWidget):
             return QHttpServerResponse("Missing name or cookie", QHttpServerResponse.StatusCode.BadRequest)
         account = Account(name=name, cookie=cookie, proxy=proxy, color=color)
         self._vault.add(account)
-        QTimer.singleShot(0, self._refresh)
-        QTimer.singleShot(100, self._backfill_identities)
-        QTimer.singleShot(500, lambda: self._toast.show_message(f"Added {name} via Extension"))
+        QTimer.singleShot(0, self, self._refresh)
+        QTimer.singleShot(100, self, self._backfill_identities)
+        QTimer.singleShot(500, self, lambda: self._toast.show_message(f"Added {name} via Extension"))
         return QHttpServerResponse("Account added", QHttpServerResponse.StatusCode.Ok)
 
     def _check_health(self, account_id: str) -> None:
