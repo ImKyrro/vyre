@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import __version__, multi_instance, roblox, updater
+from .. import multi_instance, roblox, updater
 from ..config import Config
 from ..models import Account
 from ..storage import Vault
@@ -134,7 +134,7 @@ class MainWindow(QWidget):
         QTimer.singleShot(400, self._backfill_identities)
         QTimer.singleShot(1200, self._refresh_presence)
         if self._config.get("check_updates") and self._config.get("update_url"):
-            QTimer.singleShot(2500, self._check_updates)
+            QTimer.singleShot(2500, self._auto_check_updates)
 
     def _wire_sidebar(self) -> None:
         s = self._sidebar
@@ -405,7 +405,7 @@ class MainWindow(QWidget):
         dialog = SettingsDialog(self._config, self._vault, self)
         dialog.applied.connect(self._on_settings_applied)
         dialog.check_cookies_requested.connect(self._check_all_health)
-        dialog.check_updates_requested.connect(self._check_updates)
+        dialog.check_updates_requested.connect(self._open_updates)
         dialog.debug_requested.connect(self._open_debug)
         dialog.exec()
 
@@ -467,10 +467,14 @@ class MainWindow(QWidget):
     def _reorder(self, ordered_ids: list) -> None:
         self._vault.set_order(ordered_ids)
 
-    def _check_updates(self) -> None:
+    def _open_updates(self) -> None:
+        from .update_dialog import UpdateDialog
+
+        UpdateDialog(self._config.get("update_url"), self).exec()
+
+    def _auto_check_updates(self) -> None:
         url = self._config.get("update_url")
         if not url:
-            self._toast.show_message("Set an update URL in Settings")
             return
         self._update_worker = _UpdateWorker(url, self)
         self._update_worker.done.connect(self._on_update)
@@ -479,17 +483,10 @@ class MainWindow(QWidget):
     def _on_update(self, info: dict) -> None:
         if not info:
             return
-        box = QMessageBox(self)
-        box.setWindowTitle("Update available")
-        box.setText(f"Vyre {info['version']} is available (you have {__version__}).")
-        if info.get("notes"):
-            box.setInformativeText(info["notes"][:400])
-        box.setStandardButtons(QMessageBox.Ok | QMessageBox.Open)
-        if box.exec() == QMessageBox.Open and info.get("url"):
-            from PySide6.QtCore import QUrl
-            from PySide6.QtGui import QDesktopServices
+        from .update_dialog import UpdateDialog
 
-            QDesktopServices.openUrl(QUrl(info["url"]))
+        self._toast.show_message(f"Update available — v{info['version']}")
+        UpdateDialog(self._config.get("update_url"), self).exec()
 
     def _check_health(self, account_id: str) -> None:
         account = self._account_or_warn(account_id)

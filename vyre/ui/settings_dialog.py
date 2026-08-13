@@ -302,7 +302,7 @@ class SettingsDialog(QDialog):
         self._check_updates.setChecked(bool(self._config.get("check_updates")))
         layout.addWidget(self._check_updates)
 
-        check = QPushButton("Check for updates now")
+        check = QPushButton("View updates")
         check.clicked.connect(self._save_then_check_updates)
         layout.addWidget(check, alignment=Qt.AlignLeft)
 
