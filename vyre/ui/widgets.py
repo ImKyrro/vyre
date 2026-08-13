@@ -136,7 +136,7 @@ class Avatar(QWidget):
             painter.setBrush(QBrush(QColor(self._color)))
             painter.drawEllipse(rect)
             painter.setPen(QColor("#ffffff"))
-            font = QFont("Segoe UI", int(d * 0.32))
+            font = QFont("Segoe UI", max(6, int(d * 0.32)))
             font.setWeight(QFont.Bold)
             painter.setFont(font)
             painter.drawText(rect, Qt.AlignCenter, self._initials)

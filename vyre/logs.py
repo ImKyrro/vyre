@@ -39,8 +39,17 @@ def _excepthook(exc_type, exc_value, exc_tb) -> None:
     sys.__excepthook__(exc_type, exc_value, exc_tb)
 
 
+_NOISY = ("QSslSocket", "QIODevice::read", "Content Security Policy", "translation key")
+
+
 def _qt_handler(mode, context, message) -> None:
-    log(str(message), "QT")
+    category = getattr(context, "category", "") or ""
+    if category == "js" or category.startswith("qt.webengine"):
+        return
+    text = str(message)
+    if any(token in text for token in _NOISY):
+        return
+    log(text, "QT")
 
 
 def install() -> None:
