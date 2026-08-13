@@ -5,8 +5,13 @@ __pycache__/
 venv/
 env/
 build/
+build_out/
 dist/
 *.spec
+*.exe
+Vyre.build/
+Vyre.dist/
+Vyre.onefile-build/
 
 vault.dat
 config.json
