@@ -34,6 +34,7 @@ class SettingsDialog(QDialog):
     applied = Signal()
     check_cookies_requested = Signal()
     check_updates_requested = Signal()
+    debug_requested = Signal()
 
     def __init__(self, config: Config, vault: Vault, parent=None):
         super().__init__(parent)
@@ -304,6 +305,10 @@ class SettingsDialog(QDialog):
         check = QPushButton("Check for updates now")
         check.clicked.connect(self._save_then_check_updates)
         layout.addWidget(check, alignment=Qt.AlignLeft)
+
+        debug = QPushButton("Open debug console")
+        debug.clicked.connect(self.debug_requested.emit)
+        layout.addWidget(debug, alignment=Qt.AlignLeft)
         layout.addStretch(1)
         return widget
 

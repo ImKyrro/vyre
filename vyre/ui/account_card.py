@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from ..models import Account
 from ..theme import PALETTE
+from . import icons
 from .widgets import Avatar
 
 
@@ -70,7 +71,7 @@ class AccountCard(QWidget):
         self._render_star()
 
         self._menu_button = QToolButton()
-        self._menu_button.setText("⋯")
+        self._menu_button.setIcon(icons.icon("more", PALETTE["text_dim"], 18))
         self._menu_button.clicked.connect(self._open_menu)
         layout.addWidget(self._menu_button, 0, Qt.AlignVCenter)
 
@@ -119,9 +120,8 @@ class AccountCard(QWidget):
             self._sub.setStyleSheet(f"color: {PALETTE['danger']}; font-size: 11px; font-weight: 600;")
 
     def _render_star(self) -> None:
-        self._star.setText("★" if self._favorite else "☆")
         color = PALETTE["studio"] if self._favorite else PALETTE["text_faint"]
-        self._star.setStyleSheet(f"QToolButton#Star {{ color: {color}; }}")
+        self._star.setIcon(icons.icon("star", color, 16))
 
     def _refresh_style(self) -> None:
         if self._active:
@@ -146,18 +146,19 @@ class AccountCard(QWidget):
         self._check.setChecked(value)
 
     def _open_menu(self) -> None:
+        dim = PALETTE["text_dim"]
         menu = QMenu(self)
-        menu.addAction("Open", lambda: self.select_requested.emit(self.account_id))
-        menu.addAction("Launch a game", lambda: self.launch_requested.emit(self.account_id))
-        menu.addAction("View profile on web", lambda: self.web_requested.emit(self.account_id))
-        menu.addAction("Check cookie", lambda: self.health_requested.emit(self.account_id))
+        menu.addAction(icons.icon("user", dim), "Open", lambda: self.select_requested.emit(self.account_id))
+        menu.addAction(icons.icon("play", dim), "Launch a game", lambda: self.launch_requested.emit(self.account_id))
+        menu.addAction(icons.icon("external", dim), "View profile on web", lambda: self.web_requested.emit(self.account_id))
+        menu.addAction(icons.icon("shield", dim), "Check cookie", lambda: self.health_requested.emit(self.account_id))
         menu.addSeparator()
-        menu.addAction("Edit", lambda: self.edit_requested.emit(self.account_id))
-        menu.addAction("Duplicate", lambda: self.duplicate_requested.emit(self.account_id))
-        menu.addAction("Copy cookie", lambda: self.copy_requested.emit(self.account_id))
+        menu.addAction(icons.icon("edit", dim), "Edit", lambda: self.edit_requested.emit(self.account_id))
+        menu.addAction(icons.icon("copy", dim), "Duplicate", lambda: self.duplicate_requested.emit(self.account_id))
+        menu.addAction(icons.icon("copy", dim), "Copy cookie", lambda: self.copy_requested.emit(self.account_id))
         menu.addSeparator()
-        menu.addAction("Move up", lambda: self.move_requested.emit(self.account_id, -1))
-        menu.addAction("Move down", lambda: self.move_requested.emit(self.account_id, 1))
+        menu.addAction(icons.icon("back", dim), "Move up", lambda: self.move_requested.emit(self.account_id, -1))
+        menu.addAction(icons.icon("forward", dim), "Move down", lambda: self.move_requested.emit(self.account_id, 1))
         menu.addSeparator()
-        menu.addAction("Delete", lambda: self.delete_requested.emit(self.account_id))
+        menu.addAction(icons.icon("trash", PALETTE["danger"]), "Delete", lambda: self.delete_requested.emit(self.account_id))
         menu.exec(self._menu_button.mapToGlobal(self._menu_button.rect().bottomRight()))

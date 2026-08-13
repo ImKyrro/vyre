@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -176,6 +176,8 @@ class LaunchDialog(QDialog):
     def _on_launched(self, ok: bool, message: str, button) -> None:
         button.stop_busy()
         self._set_status(message, PALETTE["online"] if ok else PALETTE["danger"])
+        if ok:
+            QTimer.singleShot(1000, self.accept)
 
     def _launch_quick(self) -> None:
         place_id = launcher.parse_place_id(self._place.text())

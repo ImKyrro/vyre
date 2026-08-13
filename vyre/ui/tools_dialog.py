@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from .. import multi_instance, wintools
 from ..config import Config
 from ..theme import PALETTE
+from . import icons
 
 
 class ToolsDialog(QDialog):
@@ -49,26 +50,26 @@ class ToolsDialog(QDialog):
         grid = QGridLayout()
         grid.setSpacing(9)
         buttons = [
-            ("Minimize all", lambda: self._act(wintools.minimize_all, "Minimized")),
-            ("Restore all", lambda: self._act(wintools.restore_all, "Restored")),
-            ("Arrange in grid", lambda: self._act(wintools.tile_grid, "Arranged")),
-            ("Lower GPU/CPU use", lambda: self._act(lambda: wintools.set_low_priority(True), "Optimized")),
-            ("Normal priority", lambda: self._act(lambda: wintools.set_low_priority(False), "Reset priority")),
-            ("Close all", lambda: self._act(wintools.close_all, "Closing")),
+            ("minimize", "Shrink to title bars", lambda: self._act(wintools.shrink_titlebars, "Shrank"), False),
+            ("grid", "Arrange in grid", lambda: self._act(wintools.tile_grid, "Arranged"), False),
+            ("minimize", "Minimize all", lambda: self._act(wintools.minimize_all, "Minimized"), False),
+            ("external", "Restore all", lambda: self._act(wintools.restore_all, "Restored"), False),
+            ("refresh", "Restore sizes", lambda: self._act(wintools.restore_sizes, "Resized"), False),
+            ("x", "Close all", lambda: self._act(wintools.close_all, "Closing"), True),
         ]
-        for index, (text, handler) in enumerate(buttons):
-            button = QPushButton(text)
+        for index, (ic, text, handler, danger) in enumerate(buttons):
+            button = QPushButton(f"  {text}")
+            button.setIcon(icons.icon(ic, PALETTE["danger"] if danger else PALETTE["text_dim"], 16))
             button.setCursor(Qt.PointingHandCursor)
             button.clicked.connect(handler)
-            if text == "Close all":
+            if danger:
                 button.setObjectName("Danger")
             grid.addWidget(button, index // 2, index % 2)
         root.addLayout(grid)
 
         hint = QLabel(
-            "‘Lower GPU/CPU use’ drops the priority of running Roblox clients so background "
-            "alts stop hogging your machine. ‘Arrange in grid’ tiles every open client across "
-            "your screen."
+            "‘Shrink to title bars’ collapses every open Roblox client to a thin bar so they "
+            "barely use your GPU while alts idle. ‘Restore sizes’ brings them back."
         )
         hint.setObjectName("Faint")
         hint.setWordWrap(True)

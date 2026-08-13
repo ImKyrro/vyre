@@ -133,6 +133,32 @@ def tile_grid() -> int:
     return total
 
 
+def shrink_titlebars() -> int:
+    import ctypes
+
+    user32 = ctypes.windll.user32
+    windows = list_windows()
+    y = 0
+    for index, (hwnd, _) in enumerate(windows):
+        user32.ShowWindow(hwnd, _SW_RESTORE)
+        user32.SetWindowPos(hwnd, 0, 0, y, 460, 40, _SWP_NOZORDER)
+        y += 44
+    return len(windows)
+
+
+def restore_sizes() -> int:
+    import ctypes
+
+    user32 = ctypes.windll.user32
+    windows = list_windows()
+    x = 0
+    for hwnd, _ in windows:
+        user32.ShowWindow(hwnd, _SW_RESTORE)
+        user32.SetWindowPos(hwnd, 0, x, 0, 1024, 640, _SWP_NOZORDER)
+        x += 40
+    return len(windows)
+
+
 def set_low_priority(low: bool = True) -> int:
     import ctypes
 

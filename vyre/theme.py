@@ -229,28 +229,25 @@ def stylesheet() -> str:
         font-weight: 700;
     }}
     QTabWidget::pane {{
-        border: 1px solid {p['border']};
-        border-radius: 10px;
+        border: none;
+        border-top: 1px solid {p['border']};
         top: -1px;
-        background-color: {p['surface']};
+        background: transparent;
     }}
     QTabBar {{ qproperty-drawBase: 0; }}
     QTabBar::tab {{
         background: transparent;
         color: {p['text_dim']};
-        padding: 8px 14px;
-        margin-right: 4px;
-        border: 1px solid transparent;
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
+        padding: 9px 16px;
+        margin-right: 2px;
+        border: none;
+        border-bottom: 2px solid transparent;
         font-size: 12px;
         font-weight: 700;
     }}
     QTabBar::tab:selected {{
         color: {p['text']};
-        background: {p['surface']};
-        border: 1px solid {p['border']};
-        border-bottom-color: {p['surface']};
+        border-bottom: 2px solid {p['accent']};
     }}
     QTabBar::tab:hover:!selected {{ color: {p['text']}; }}
     QMenu {{

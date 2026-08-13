@@ -20,6 +20,7 @@ from .account_dialog import AccountDialog
 from .browser import BrowserPanel
 from .bulk_dialog import BulkImportDialog
 from .detail_panel import DetailPanel
+from .email_dialog import EmailDialog
 from .launch_dialog import LaunchDialog
 from .mass_launch_dialog import MassLaunchDialog
 from .settings_dialog import SettingsDialog
@@ -163,7 +164,8 @@ class MainWindow(QWidget):
         d.copy_cookie_requested.connect(self._copy_cookie)
         d.copy_profile_requested.connect(self._copy_profile)
         d.edit_requested.connect(self._edit_account)
-        d.settings_web_requested.connect(self._account_settings_web)
+        d.settings_web_requested.connect(self._open_email_dialog)
+        d.health_requested.connect(self._check_health)
         d.join_requested.connect(self._join_game)
 
     def _build_placeholder(self) -> QWidget:
@@ -402,7 +404,13 @@ class MainWindow(QWidget):
         dialog.applied.connect(self._on_settings_applied)
         dialog.check_cookies_requested.connect(self._check_all_health)
         dialog.check_updates_requested.connect(self._check_updates)
+        dialog.debug_requested.connect(self._open_debug)
         dialog.exec()
+
+    def _open_debug(self) -> None:
+        from .debug_dialog import DebugDialog
+
+        DebugDialog(self).show()
 
     def _on_settings_applied(self) -> None:
         self._apply_config()
@@ -528,6 +536,14 @@ class MainWindow(QWidget):
 
     def _open_tools(self) -> None:
         ToolsDialog(self._config, self).exec()
+
+    def _open_email_dialog(self, account_id: str) -> None:
+        account = self._account_or_warn(account_id)
+        if not account:
+            return
+        dialog = EmailDialog(account, self)
+        dialog.open_web_requested.connect(self._account_settings_web)
+        dialog.exec()
 
     def _account_settings_web(self, account_id: str) -> None:
         account = self._account_or_warn(account_id)

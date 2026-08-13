@@ -1,6 +1,6 @@
 import time
 
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -186,3 +186,5 @@ class MassLaunchDialog(QDialog):
     def _done(self, launched: int) -> None:
         self._launch.stop_busy()
         self._set_status(f"Launched {launched} of {len(self._accounts)} account(s).", PALETTE["online"])
+        if launched:
+            QTimer.singleShot(1400, self.accept)

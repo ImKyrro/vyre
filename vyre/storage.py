@@ -11,28 +11,30 @@ _MAGIC = b"VYRE1"
 
 
 class Vault:
-    def __init__(self, cipher: Cipher, salt: bytes):
+    def __init__(self, cipher: Cipher, salt: bytes, path=None):
         self._cipher = cipher
         self._salt = salt
+        self._path = path or VAULT_FILE
         self.accounts: List[Account] = []
 
     @staticmethod
-    def exists() -> bool:
-        return VAULT_FILE.exists()
+    def exists(path=None) -> bool:
+        return (path or VAULT_FILE).exists()
 
     @classmethod
-    def create(cls, password: str) -> "Vault":
+    def create(cls, password: str, path=None) -> "Vault":
         if not password:
             raise VaultError("Master password cannot be empty.")
         salt = generate_salt()
         cipher = Cipher.from_password(password, salt)
-        vault = cls(cipher, salt)
+        vault = cls(cipher, salt, path)
         vault.save()
         return vault
 
     @classmethod
-    def unlock(cls, password: str) -> "Vault":
-        with open(VAULT_FILE, "rb") as handle:
+    def unlock(cls, password: str, path=None) -> "Vault":
+        path = path or VAULT_FILE
+        with open(path, "rb") as handle:
             raw = handle.read()
         if not raw.startswith(_MAGIC):
             raise VaultError("Vault file is corrupted or unrecognized.")
@@ -41,7 +43,7 @@ class Vault:
         cipher = Cipher.from_password(password, salt)
         payload = cipher.decrypt(token)
         data = json.loads(payload.decode("utf-8"))
-        vault = cls(cipher, salt)
+        vault = cls(cipher, salt, path)
         vault.accounts = [Account.from_dict(item) for item in data.get("accounts", [])]
         return vault
 
@@ -51,10 +53,10 @@ class Vault:
         }
         raw = json.dumps(payload).encode("utf-8")
         token = self._cipher.encrypt(raw)
-        temp = VAULT_FILE.with_suffix(".tmp")
+        temp = self._path.with_suffix(".tmp")
         with open(temp, "wb") as handle:
             handle.write(_MAGIC + self._salt + token)
-        os.replace(temp, VAULT_FILE)
+        os.replace(temp, self._path)
 
     def add(self, account: Account) -> None:
         self.accounts.append(account)

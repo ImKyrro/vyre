@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
     QGridLayout,
@@ -11,7 +13,20 @@ from PySide6.QtWidgets import (
 from .. import roblox
 from ..models import Account
 from ..theme import PALETTE
+from . import icons
 from .widgets import Avatar, StatChip
+
+
+def _fmt_date(iso: str) -> str:
+    if not iso:
+        return "—"
+    try:
+        moment = datetime.fromisoformat(iso)
+    except ValueError:
+        return "—"
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    return moment.astimezone().strftime("%b %d, %Y")
 
 
 class _DetailWorker(QThread):
@@ -57,6 +72,7 @@ class DetailPanel(QWidget):
     copy_profile_requested = Signal(str)
     edit_requested = Signal(str)
     settings_web_requested = Signal(str)
+    health_requested = Signal(str)
     join_requested = Signal(str, str, str)
 
     def __init__(self, config=None, parent=None):
@@ -68,12 +84,12 @@ class DetailPanel(QWidget):
         self._join = ("", "")
 
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(34, 30, 34, 30)
-        outer.setSpacing(18)
+        outer.setContentsMargins(32, 28, 32, 28)
+        outer.setSpacing(16)
 
         head = QHBoxLayout()
         head.setSpacing(18)
-        self._avatar = Avatar("?", PALETTE["accent"], 92)
+        self._avatar = Avatar("?", PALETTE["accent"], 88)
         head.addWidget(self._avatar, 0, Qt.AlignTop)
 
         info = QVBoxLayout()
@@ -87,10 +103,11 @@ class DetailPanel(QWidget):
         self._presence = QLabel("")
         self._presence.setStyleSheet("font-size: 13px; font-weight: 600;")
         info.addWidget(self._presence)
-        self._join_btn = QPushButton("Join their game")
+        self._join_btn = QPushButton("  Join their game")
         self._join_btn.setObjectName("Primary")
+        self._join_btn.setIcon(icons.icon("play", "#ffffff", 15))
         self._join_btn.setCursor(Qt.PointingHandCursor)
-        self._join_btn.setFixedWidth(160)
+        self._join_btn.setFixedWidth(170)
         self._join_btn.clicked.connect(self._emit_join)
         self._join_btn.hide()
         info.addWidget(self._join_btn)
@@ -112,39 +129,85 @@ class DetailPanel(QWidget):
         outer.addWidget(self._stats_row)
 
         actions = QGridLayout()
-        actions.setSpacing(10)
-        self._browse = QPushButton("Open browser session")
-        self._browse.setObjectName("Primary")
-        self._browse.setCursor(Qt.PointingHandCursor)
-        self._browse.clicked.connect(lambda: self._emit(self.browse_requested))
-        launch = QPushButton("Launch a game")
-        launch.clicked.connect(lambda: self._emit(self.launch_requested))
-        web = QPushButton("View profile on web")
-        web.clicked.connect(lambda: self._emit(self.web_requested))
-        edit = QPushButton("Edit account")
-        edit.clicked.connect(lambda: self._emit(self.edit_requested))
-        copy_cookie = QPushButton("Copy cookie")
-        copy_cookie.clicked.connect(lambda: self._emit(self.copy_cookie_requested))
-        copy_profile = QPushButton("Copy profile link")
-        copy_profile.clicked.connect(lambda: self._emit(self.copy_profile_requested))
-        account_settings = QPushButton("Account && email settings")
-        account_settings.clicked.connect(lambda: self._emit(self.settings_web_requested))
-        for button in (launch, web, edit, copy_cookie, copy_profile, account_settings):
-            button.setCursor(Qt.PointingHandCursor)
+        actions.setSpacing(9)
+        self._browse = self._action("Open browser session", "login", self.browse_requested, primary=True)
+        launch = self._action("Launch a game", "play", self.launch_requested)
+        web = self._action("View profile on web", "external", self.web_requested)
+        edit = self._action("Edit account", "edit", self.edit_requested)
+        copy_cookie = self._action("Copy cookie", "copy", self.copy_cookie_requested)
+        copy_profile = self._action("Copy profile link", "link", self.copy_profile_requested)
+        account_settings = self._action("Account && email", "mail", self.settings_web_requested)
+        check = self._action("Check cookie", "shield", self.health_requested)
         actions.addWidget(self._browse, 0, 0)
         actions.addWidget(launch, 0, 1)
         actions.addWidget(web, 0, 2)
+        actions.addWidget(account_settings, 0, 3)
         actions.addWidget(edit, 1, 0)
         actions.addWidget(copy_cookie, 1, 1)
         actions.addWidget(copy_profile, 1, 2)
-        actions.addWidget(account_settings, 2, 0)
+        actions.addWidget(check, 1, 3)
         outer.addLayout(actions)
 
-        self._note = QLabel("")
+        cards = QHBoxLayout()
+        cards.setSpacing(14)
+        cards.addWidget(self._build_notes_card(), 1)
+        cards.addWidget(self._build_session_card(), 1)
+        outer.addLayout(cards, 1)
+
+    def _action(self, text: str, icon_name: str, signal, primary: bool = False) -> QPushButton:
+        button = QPushButton(f"  {text}")
+        color = "#ffffff" if primary else PALETTE["text_dim"]
+        button.setIcon(icons.icon(icon_name, color, 16))
+        if primary:
+            button.setObjectName("Primary")
+        button.setCursor(Qt.PointingHandCursor)
+        button.clicked.connect(lambda: self._emit(signal))
+        return button
+
+    def _build_notes_card(self) -> QWidget:
+        card = QWidget()
+        card.setObjectName("Card")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setSpacing(8)
+        title = QLabel("NOTES")
+        title.setObjectName("StatLabel")
+        layout.addWidget(title)
+        self._note = QLabel("No notes yet.")
         self._note.setObjectName("Muted")
         self._note.setWordWrap(True)
-        outer.addWidget(self._note)
-        outer.addStretch(1)
+        self._note.setAlignment(Qt.AlignTop)
+        layout.addWidget(self._note, 1)
+        return card
+
+    def _build_session_card(self) -> QWidget:
+        card = QWidget()
+        card.setObjectName("Card")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setSpacing(10)
+        title = QLabel("SESSION")
+        title.setObjectName("StatLabel")
+        layout.addWidget(title)
+        self._added_row = self._info_row("Added")
+        self._used_row = self._info_row("Last used")
+        self._cookie_row = self._info_row("Cookie")
+        for row in (self._added_row, self._used_row, self._cookie_row):
+            layout.addLayout(row)
+        layout.addStretch(1)
+        return card
+
+    def _info_row(self, label: str):
+        row = QHBoxLayout()
+        name = QLabel(label)
+        name.setObjectName("Faint")
+        value = QLabel("—")
+        value.setStyleSheet("font-size: 12px; font-weight: 600;")
+        row.addWidget(name)
+        row.addStretch(1)
+        row.addWidget(value)
+        row._value = value
+        return row
 
     def _emit(self, signal) -> None:
         if self._account:
@@ -161,8 +224,10 @@ class DetailPanel(QWidget):
         self._account = account
         self._join = ("", "")
         self._join_btn.hide()
-        self._stats_row.setVisible(not self._hide_info())
-        self._handle.setVisible(not self._hide_info())
+        hidden = self._hide_info()
+        self._stats_row.setVisible(not hidden)
+        self._handle.setVisible(not hidden)
+
         self._avatar.update_data(account.initials(), account.color)
         self._avatar.set_status("offline")
         if account.user_id:
@@ -170,15 +235,25 @@ class DetailPanel(QWidget):
                 "https://thumbnails.roblox.com/v1/users/avatar-headshot"
                 f"?userIds={account.user_id}&size=352x352&format=Png&isCircular=false"
             )
-        self._name.setText(account.display_name or account.username or account.name)
+        if hidden:
+            self._name.setText("Hidden account")
+        else:
+            self._name.setText(account.display_name or account.username or account.name)
         self._handle.setText(f"@{account.username}" if account.username else account.name)
         self._presence.setText("Checking presence…")
         self._presence.setStyleSheet(f"color: {PALETTE['text_dim']}; font-size: 13px; font-weight: 600;")
-        self._uid.set_value(account.user_id or "—")
+        self._uid.set_value("•••" if hidden else (account.user_id or "—"))
         self._friends.set_value("—")
         self._followers.set_value("—")
         self._following.set_value("—")
-        self._note.setText(account.note)
+        self._note.setText(account.note or "No notes yet.")
+        self._added_row._value.setText(_fmt_date(account.created_at))
+        self._used_row._value.setText(_fmt_date(account.last_used) if account.last_used else "Never")
+        valid = roblox.is_valid_cookie(account.cookie)
+        self._cookie_row._value.setText("Looks valid" if valid else "Check needed")
+        self._cookie_row._value.setStyleSheet(
+            f"font-size: 12px; font-weight: 600; color: {PALETTE['online'] if valid else PALETTE['studio']};"
+        )
 
         self._worker = _DetailWorker(account, self)
         self._worker.done.connect(self._on_data)
@@ -187,8 +262,9 @@ class DetailPanel(QWidget):
     def _on_data(self, account_id: str, data: dict) -> None:
         if not self._account or self._account.id != account_id:
             return
+        hidden = self._hide_info()
         identity = data.get("identity", {})
-        if identity:
+        if identity and not hidden:
             self._uid.set_value(identity.get("user_id", "—"))
 
         if "presence" in data:
@@ -210,7 +286,7 @@ class DetailPanel(QWidget):
             self._join_btn.show()
 
         stats = data.get("stats", {})
-        if stats:
+        if stats and not hidden:
             self._friends.set_value(str(stats.get("friends", "—")))
             self._followers.set_value(str(stats.get("followers", "—")))
             self._following.set_value(str(stats.get("following", "—")))

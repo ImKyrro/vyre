@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QDialog
 
+from . import logs
 from .config import Config
 from .system import set_app_user_model_id
 from .theme import stylesheet
@@ -13,11 +14,19 @@ from .ui.unlock_dialog import UnlockDialog
 
 
 def _icon() -> QIcon:
-    path = Path(__file__).parent / "assets" / "icon.png"
-    return QIcon(str(path)) if path.exists() else QIcon()
+    assets = Path(__file__).parent / "assets"
+    ico = assets / "icon.ico"
+    png = assets / "icon.png"
+    icon = QIcon()
+    if ico.exists():
+        icon.addFile(str(ico))
+    if png.exists():
+        icon.addFile(str(png))
+    return icon
 
 
 def run() -> int:
+    logs.install()
     set_app_user_model_id()
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough

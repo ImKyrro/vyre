@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 
 from ..models import Account
 from ..theme import PALETTE
+from . import icons
 from .account_card import AccountCard
 
 
@@ -65,7 +66,7 @@ class Sidebar(QWidget):
         header.addLayout(brand)
         header.addStretch(1)
         self._settings = QToolButton()
-        self._settings.setText("⚙")
+        self._settings.setIcon(icons.icon("settings", PALETTE["text_dim"], 19))
         self._settings.setToolTip("Settings")
         self._settings.setCursor(Qt.PointingHandCursor)
         self._settings.clicked.connect(self.settings_requested.emit)
@@ -106,13 +107,13 @@ class Sidebar(QWidget):
         label_row.addWidget(self._count)
         label_row.addStretch(1)
         self._select_all = QToolButton()
-        self._select_all.setText("☑")
+        self._select_all.setIcon(icons.icon("check", PALETTE["text_dim"], 16))
         self._select_all.setToolTip("Select all / none")
         self._select_all.setCursor(Qt.PointingHandCursor)
         self._select_all.clicked.connect(self._toggle_all)
         label_row.addWidget(self._select_all)
         self._refresh = QToolButton()
-        self._refresh.setText("⟳")
+        self._refresh.setIcon(icons.icon("refresh", PALETTE["text_dim"], 16))
         self._refresh.setToolTip("Refresh presence")
         self._refresh.setCursor(Qt.PointingHandCursor)
         self._refresh.clicked.connect(self.refresh_requested.emit)
@@ -148,10 +149,12 @@ class Sidebar(QWidget):
         footer = QHBoxLayout()
         footer.setContentsMargins(16, 8, 16, 14)
         footer.setSpacing(8)
-        support = QPushButton("♥  Support")
+        support = QPushButton("  Support")
+        support.setIcon(icons.icon("heart", PALETTE["accent"], 16))
         support.setCursor(Qt.PointingHandCursor)
         support.clicked.connect(self.support_requested.emit)
-        tools = QPushButton("Roblox tools")
+        tools = QPushButton("  Roblox tools")
+        tools.setIcon(icons.icon("tool", PALETTE["text_dim"], 16))
         tools.setCursor(Qt.PointingHandCursor)
         tools.clicked.connect(self.tools_requested.emit)
         footer.addWidget(support, 1)
@@ -161,22 +164,24 @@ class Sidebar(QWidget):
     def _build_action_bar(self) -> QWidget:
         bar = QWidget()
         bar.setStyleSheet(
-            f"background-color: {PALETTE['accent_soft']};"
+            f"background-color: {PALETTE['surface_alt']};"
             f" border-top: 1px solid {PALETTE['border']};"
         )
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(16, 10, 16, 10)
         layout.setSpacing(8)
         self._sel_label = QLabel("0 selected")
-        self._sel_label.setStyleSheet("font-size: 12px; font-weight: 700;")
+        self._sel_label.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {PALETTE['text']};")
         layout.addWidget(self._sel_label)
         layout.addStretch(1)
         clear = QPushButton("Clear")
         clear.setObjectName("Ghost")
+        clear.setCursor(Qt.PointingHandCursor)
         clear.clicked.connect(self._clear_checks)
         layout.addWidget(clear)
-        launch = QPushButton("Launch")
+        launch = QPushButton("  Launch")
         launch.setObjectName("Primary")
+        launch.setIcon(icons.icon("rocket", "#ffffff", 16))
         launch.setCursor(Qt.PointingHandCursor)
         launch.clicked.connect(self.mass_launch_requested.emit)
         layout.addWidget(launch)

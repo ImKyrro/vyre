@@ -13,10 +13,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from PySide6.QtGui import QGuiApplication
+
 from .. import roblox
 from ..models import Account
 from ..paths import profile_dir
 from ..theme import PALETTE
+from . import icons
 from .widgets import Avatar
 
 _USER_AGENT = (
@@ -34,6 +37,7 @@ class BrowserPanel(QWidget):
         self._pages: dict[str, QWebEnginePage] = {}
         self._seeded: set[str] = set()
         self._current: str | None = None
+        self._current_account: Account | None = None
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -62,21 +66,21 @@ class BrowserPanel(QWidget):
             f" border-bottom: 1px solid {PALETTE['border']};"
         )
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(12, 8, 14, 8)
-        layout.setSpacing(6)
+        layout.setContentsMargins(10, 8, 12, 8)
+        layout.setSpacing(4)
 
-        self._home_app = QPushButton("‹ Vyre")
+        self._home_app = QPushButton("  Vyre")
         self._home_app.setObjectName("Ghost")
+        self._home_app.setIcon(icons.icon("back", PALETTE["text"], 16))
         self._home_app.setCursor(Qt.PointingHandCursor)
         self._home_app.setToolTip("Back to Vyre")
         self._home_app.clicked.connect(self.back_to_app.emit)
         layout.addWidget(self._home_app)
 
-        self._back = self._nav_button("‹", "Back", self._go_back)
-        self._forward = self._nav_button("›", "Forward", self._go_forward)
-        self._reload = self._nav_button("⟳", "Reload", self._reload_page)
-        self._home = self._nav_button("⌂", "Home", self._go_home)
-        self._external = self._nav_button("↗", "Open in system browser", self._open_external)
+        self._back = self._nav_button("back", "Back", self._go_back)
+        self._forward = self._nav_button("forward", "Forward", self._go_forward)
+        self._reload = self._nav_button("refresh", "Reload", self._reload_page)
+        self._home = self._nav_button("home", "Home", self._go_home)
         for button in (self._back, self._forward, self._reload, self._home):
             layout.addWidget(button)
 
@@ -86,9 +90,12 @@ class BrowserPanel(QWidget):
         self._address.setReadOnly(True)
         layout.addWidget(self._address, 1)
 
+        self._copy = self._nav_button("copy", "Copy this account's cookie", self._copy_cookie)
+        self._external = self._nav_button("external", "Open in system browser", self._open_external)
+        layout.addWidget(self._copy)
         layout.addWidget(self._external)
 
-        self._badge = Avatar("V", PALETTE["surface_alt"], 30)
+        self._badge = Avatar("V", PALETTE["surface_alt"], 28)
         layout.addWidget(self._badge)
         self._who = QLabel("No account")
         self._who.setStyleSheet("font-size: 12px; font-weight: 600;")
@@ -97,9 +104,9 @@ class BrowserPanel(QWidget):
         self._set_nav_enabled(False)
         return bar
 
-    def _nav_button(self, glyph: str, tip: str, handler) -> QToolButton:
+    def _nav_button(self, name: str, tip: str, handler) -> QToolButton:
         button = QToolButton()
-        button.setText(glyph)
+        button.setIcon(icons.icon(name, PALETTE["text_dim"], 18))
         button.setToolTip(tip)
         button.setCursor(Qt.PointingHandCursor)
         button.clicked.connect(handler)
@@ -165,8 +172,14 @@ class BrowserPanel(QWidget):
 
         self._view.setPage(page)
         self._current = account.id
+        self._current_account = account
         self._stack.setCurrentWidget(self._view)
         self._badge.update_data(account.initials(), account.color)
+        if account.user_id:
+            self._badge.set_image_url(
+                "https://thumbnails.roblox.com/v1/users/avatar-headshot"
+                f"?userIds={account.user_id}&size=150x150&format=Png&isCircular=false"
+            )
         self._who.setText(account.username or account.name)
         self._address.setText(page.url().toString())
         self._set_nav_enabled(True)
@@ -181,6 +194,7 @@ class BrowserPanel(QWidget):
         if self._current == account_id:
             self._stack.setCurrentWidget(self._placeholder)
             self._current = None
+            self._current_account = None
             self._set_nav_enabled(False)
         self._pages.pop(account_id, None)
         self._profiles.pop(account_id, None)
@@ -196,12 +210,16 @@ class BrowserPanel(QWidget):
 
         QDesktopServices.openUrl(self._view.url())
 
+    def _copy_cookie(self) -> None:
+        if self._current_account:
+            QGuiApplication.clipboard().setText(self._current_account.cookie)
+
     def _set_nav_enabled(self, enabled: bool) -> None:
-        for button in (self._back, self._forward, self._reload, self._home, self._external):
+        for button in (self._back, self._forward, self._reload, self._home, self._external, self._copy):
             button.setEnabled(enabled)
 
     def _set_loading(self, loading: bool) -> None:
-        self._reload.setText("×" if loading else "⟳")
+        self._reload.setIcon(icons.icon("x" if loading else "refresh", PALETTE["text_dim"], 18))
 
     def _on_url(self, url: QUrl) -> None:
         self._address.setText(url.toString())

@@ -224,6 +224,43 @@ def get_auth_ticket(cookie: str, timeout: float = 12.0) -> str:
     return ""
 
 
+def _post_ok(url: str, cookie: str, payload: dict, timeout: float = 12.0) -> bool:
+    data = json.dumps(payload).encode("utf-8")
+    csrf = ""
+    for _ in range(2):
+        headers = {
+            "User-Agent": _UA,
+            "Content-Type": "application/json",
+            "Cookie": f"{COOKIE_NAME}={normalize_cookie(cookie)}",
+        }
+        if csrf:
+            headers["X-CSRF-TOKEN"] = csrf
+        status, resp_headers, _ = _open(
+            urllib.request.Request(url, data=data, headers=headers, method="POST"), timeout
+        )
+        if status == 403 and resp_headers.get("x-csrf-token"):
+            csrf = resp_headers.get("x-csrf-token")
+            continue
+        return status == 200
+    return False
+
+
+def get_email(cookie: str) -> dict:
+    data = _get("https://accountsettings.roblox.com/v1/email", cookie)
+    return {
+        "email": data.get("emailAddress", ""),
+        "verified": bool(data.get("verified", False)),
+    }
+
+
+def resend_verification(cookie: str) -> bool:
+    return _post_ok("https://accountsettings.roblox.com/v1/email/verify", cookie, {})
+
+
+def change_email_url() -> str:
+    return "https://www.roblox.com/my/account#!/info"
+
+
 def resolve_username(username: str) -> str:
     name = (username or "").strip().lstrip("@")
     if not name:

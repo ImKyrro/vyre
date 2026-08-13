@@ -100,6 +100,69 @@ def launch_game(account: str, place_id: str, job_id: str = "") -> dict:
     return {"ok": ok, "message": message}
 
 
+@server.tool(description="Get stored details for a saved account (username, user id, favorite, note, created).")
+def account_details(account: str) -> dict:
+    found = _find(account)
+    if not found:
+        return {"error": f"No account matching '{account}'."}
+    return {
+        "id": found.id,
+        "name": found.name,
+        "username": found.username,
+        "user_id": found.user_id,
+        "favorite": found.favorite,
+        "note": found.note,
+        "created_at": found.created_at,
+        "last_used": found.last_used,
+    }
+
+
+@server.tool(description="Check whether a saved account's Roblox cookie is still valid.")
+def check_cookie(account: str) -> dict:
+    found = _find(account)
+    if not found:
+        return {"error": f"No account matching '{account}'."}
+    return {"valid": roblox.check_cookie(found.cookie)}
+
+
+@server.tool(description="Launch Roblox as a saved account and follow another user into their current game.")
+def join_user(account: str, target: str) -> dict:
+    found = _find(account)
+    if not found:
+        return {"error": f"No account matching '{account}'."}
+    user_id = roblox.resolve_username(target)
+    if not user_id:
+        return {"error": f"Could not resolve user '{target}'."}
+    ok, message = launcher.follow_user(found.cookie, user_id)
+    return {"ok": ok, "message": message}
+
+
+@server.tool(description="Enable running multiple Roblox instances at once on this machine.")
+def enable_multi_instance() -> dict:
+    from . import multi_instance
+
+    ok = multi_instance.enable()
+    return {"ok": ok, "status": multi_instance.status()}
+
+
+@server.tool(description="Control open Roblox windows: action is one of list, minimize, restore, grid, shrink, close.")
+def roblox_windows(action: str = "list") -> dict:
+    from . import wintools
+
+    actions = {
+        "minimize": wintools.minimize_all,
+        "restore": wintools.restore_all,
+        "grid": wintools.tile_grid,
+        "shrink": wintools.shrink_titlebars,
+        "close": wintools.close_all,
+    }
+    if action == "list":
+        return {"open": wintools.count()}
+    if action in actions:
+        return {"affected": actions[action]()}
+    return {"error": "Unknown action."}
+
+
 def main() -> None:
     server.run(transport="stdio")
 
