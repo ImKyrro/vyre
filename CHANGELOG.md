@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+- Implemented Chrome extension local API capture receiver
+- Randomized birthdate (month, day, year) in automated signup flow
+- Added sidebar update button notifier in header
+- Fixed update checking errors reporting
+
 ## 1.1.0
 
 - Automated Roblox signup flow: autofills birthday (18+), username, and password, then submits automatically
