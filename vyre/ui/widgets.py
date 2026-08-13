@@ -16,11 +16,17 @@ from ..theme import PALETTE, status_color
 
 _cache: dict[str, QPixmap] = {}
 HIDE_IMAGES = False
+HIDE_INFO = False
 
 
 def set_hide_images(value: bool) -> None:
     global HIDE_IMAGES
     HIDE_IMAGES = value
+
+
+def set_hide_info(value: bool) -> None:
+    global HIDE_INFO
+    HIDE_INFO = value
 
 
 class _Loader:

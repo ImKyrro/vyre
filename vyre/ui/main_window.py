@@ -27,7 +27,7 @@ from .settings_dialog import SettingsDialog
 from .sidebar import Sidebar
 from .support_dialog import SupportDialog
 from .tools_dialog import ToolsDialog
-from .widgets import Toast, set_hide_images
+from .widgets import Toast, set_hide_images, set_hide_info
 
 
 class _PresenceWorker(QThread):
@@ -127,6 +127,7 @@ class MainWindow(QWidget):
             multi_instance.enable()
 
         set_hide_images(bool(self._config.get("hide_images")))
+        set_hide_info(bool(self._config.get("hide_info")))
         self._refresh()
         self._resize_compact()
         self._apply_config()
@@ -202,6 +203,7 @@ class MainWindow(QWidget):
 
     def _apply_config(self) -> None:
         set_hide_images(bool(self._config.get("hide_images")))
+        set_hide_info(bool(self._config.get("hide_info")))
         self._presence_timer.stop()
         if self._config.get("presence_auto_refresh"):
             interval = max(15, int(self._config.get("presence_interval"))) * 1000

@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 
 from ..models import Account
 from ..theme import PALETTE
-from . import icons
+from . import icons, widgets
 from .widgets import Avatar
 
 
@@ -55,9 +55,10 @@ class AccountCard(QWidget):
         text = QVBoxLayout()
         text.setSpacing(2)
         text.setContentsMargins(0, 0, 0, 0)
-        self._name = QLabel(account.name)
+        self._private = widgets.HIDE_INFO
+        self._name = QLabel("Hidden account" if self._private else account.name)
         self._name.setStyleSheet("font-size: 13px; font-weight: 700;")
-        self._sub = QLabel(account.username or "Not verified")
+        self._sub = QLabel("" if self._private else (account.username or "Not verified"))
         self._sub.setStyleSheet(f"color: {PALETTE['text_faint']}; font-size: 11px;")
         text.addWidget(self._name)
         text.addWidget(self._sub)
@@ -101,18 +102,18 @@ class AccountCard(QWidget):
             return
         self._avatar.set_status(kind)
         if kind in ("ingame", "online", "studio"):
-            detail = location if (kind == "ingame" and location) else label
+            detail = location if (kind == "ingame" and location and not self._private) else label
             self._sub.setText(detail)
             color = PALETTE["online"] if kind == "ingame" else PALETTE["text_dim"]
             self._sub.setStyleSheet(f"color: {color}; font-size: 11px;")
         else:
-            self._sub.setText(self._username or "Offline")
+            self._sub.setText("" if self._private else (self._username or "Offline"))
             self._sub.setStyleSheet(f"color: {PALETTE['text_faint']}; font-size: 11px;")
 
     def set_health(self, valid: bool) -> None:
         self._expired = not valid
         if valid:
-            self._sub.setText(self._username or "Verified")
+            self._sub.setText("Verified" if self._private else (self._username or "Verified"))
             self._sub.setStyleSheet(f"color: {PALETTE['online']}; font-size: 11px;")
         else:
             self._avatar.set_status("offline")
