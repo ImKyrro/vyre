@@ -133,7 +133,7 @@ class MainWindow(QWidget):
         self._apply_config()
         QTimer.singleShot(400, self._backfill_identities)
         QTimer.singleShot(1200, self._refresh_presence)
-        if self._config.get("check_updates") and self._config.get("update_url"):
+        if self._config.get("check_updates"):
             QTimer.singleShot(2500, self._auto_check_updates)
 
     def _wire_sidebar(self) -> None:
@@ -470,13 +470,10 @@ class MainWindow(QWidget):
     def _open_updates(self) -> None:
         from .update_dialog import UpdateDialog
 
-        UpdateDialog(self._config.get("update_url"), self).exec()
+        UpdateDialog(updater.UPDATE_URL, self).exec()
 
     def _auto_check_updates(self) -> None:
-        url = self._config.get("update_url")
-        if not url:
-            return
-        self._update_worker = _UpdateWorker(url, self)
+        self._update_worker = _UpdateWorker(updater.UPDATE_URL, self)
         self._update_worker.done.connect(self._on_update)
         self._update_worker.start()
 
@@ -486,7 +483,7 @@ class MainWindow(QWidget):
         from .update_dialog import UpdateDialog
 
         self._toast.show_message(f"Update available — v{info['version']}")
-        UpdateDialog(self._config.get("update_url"), self).exec()
+        UpdateDialog(updater.UPDATE_URL, self).exec()
 
     def _check_health(self, account_id: str) -> None:
         account = self._account_or_warn(account_id)

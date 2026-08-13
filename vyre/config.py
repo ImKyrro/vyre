@@ -17,7 +17,6 @@ _DEFAULTS = {
     "open_web_external": False,
     "auto_lock_minutes": 0,
     "allow_multi_instance": False,
-    "update_url": "https://api.github.com/repos/ImKyrro/Vyre-Roblox-Alt-Manager/releases/latest",
     "check_updates": True,
     "hide_info": False,
     "hide_images": False,

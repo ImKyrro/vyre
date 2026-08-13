@@ -4,6 +4,8 @@ import urllib.request
 
 from . import __version__
 
+UPDATE_URL = "https://api.github.com/repos/ImKyrro/vyre/releases/latest"
+
 
 def _parse(version: str) -> tuple:
     parts = []

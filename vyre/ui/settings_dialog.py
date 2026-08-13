@@ -253,12 +253,16 @@ class SettingsDialog(QDialog):
         layout.addWidget(hint)
 
         project_dir = Path(__file__).resolve().parent.parent.parent
+        try:
+            cwd_display = str(Path("%USERPROFILE%") / project_dir.relative_to(Path.home()))
+        except ValueError:
+            cwd_display = "%USERPROFILE%\\vyre"
         snippet = {
             "mcpServers": {
                 "vyre": {
                     "command": "python",
                     "args": ["-m", "vyre.mcp_server"],
-                    "cwd": str(project_dir),
+                    "cwd": cwd_display,
                     "env": {"VYRE_MASTER_PASSWORD": "your-master-password"},
                 }
             }
@@ -293,11 +297,6 @@ class SettingsDialog(QDialog):
         layout.addWidget(maker)
 
         layout.addSpacing(8)
-        layout.addWidget(self._label("Update source URL"))
-        self._update_url = QLineEdit(self._config.get("update_url"))
-        self._update_url.setPlaceholderText("https://…/latest.json or a GitHub releases/latest API URL")
-        layout.addWidget(self._update_url)
-
         self._check_updates = QCheckBox("Check for updates on startup")
         self._check_updates.setChecked(bool(self._config.get("check_updates")))
         layout.addWidget(self._check_updates)
@@ -313,7 +312,6 @@ class SettingsDialog(QDialog):
         return widget
 
     def _save_then_check_updates(self) -> None:
-        self._config.set("update_url", self._update_url.text().strip())
         self._config.set("check_updates", self._check_updates.isChecked())
         self._config.save()
         self.check_updates_requested.emit()
@@ -392,7 +390,6 @@ class SettingsDialog(QDialog):
             "presence_interval": self._interval.value(),
             "auto_lock_minutes": self._auto_lock.value(),
             "saved_games": games,
-            "update_url": self._update_url.text().strip(),
             "check_updates": self._check_updates.isChecked(),
             "hide_images": self._hide_images.isChecked(),
             "hide_info": self._hide_info.isChecked(),
