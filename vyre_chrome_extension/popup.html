@@ -18,22 +18,17 @@
       --online: #3fb950;
       --studio: #d29922;
       --ingame: #4c8dff;
-      --offline: #5f5f68;
     }
     * { box-sizing: border-box; font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-    body { width: 380px; max-height: 580px; overflow-y: auto; background: var(--bg); color: var(--text); }
+    body { width: 360px; max-height: 560px; overflow-y: auto; background: var(--bg); color: var(--text); }
     body::-webkit-scrollbar { width: 4px; }
     body::-webkit-scrollbar-track { background: transparent; }
     body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
     .container { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
-    .header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 4px; }
+    .header { display: flex; align-items: center; justify-content: space-between; }
     .logo { font-weight: 800; font-size: 17px; letter-spacing: 1.2px; display: flex; align-items: center; gap: 6px; }
     .logo b { color: var(--accent); }
-    .logo-version { font-size: 9px; color: var(--faint); font-weight: 500; background: var(--surface-alt); padding: 2px 6px; border-radius: 4px; }
-    .header-actions { display: flex; gap: 4px; }
-    .icon-btn { background: none; border: none; color: var(--dim); cursor: pointer; padding: 6px; border-radius: 6px; font-size: 14px; line-height: 1; transition: all .15s; }
-    .icon-btn:hover { background: var(--surface-alt); color: var(--text); }
-    .icon-btn.active { color: var(--accent); }
+    .logo-ver { font-size: 9px; color: var(--faint); font-weight: 500; background: var(--surface-alt); padding: 2px 6px; border-radius: 4px; }
     .pill { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--dim); font-weight: 600; }
     .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex-shrink: 0; }
     .dot.on { background: var(--online); box-shadow: 0 0 6px rgba(63,185,80,.4); }
@@ -43,25 +38,21 @@
     .tab:hover { color: var(--dim); }
     .tab.active { background: var(--surface-alt); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
     .panel { display: none; flex-direction: column; gap: 10px; }
-    .panel.active { display: flex; }
+    .panel.active { display: flex; animation: fadeIn .15s ease; }
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
     .profile-card { display: flex; gap: 12px; align-items: center; }
-    .avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--surface-alt); border: 2px solid var(--border); object-fit: cover; flex-shrink: 0; }
+    .avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--surface-alt); border: 2px solid var(--border); object-fit: cover; flex-shrink: 0; }
     .who { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
     .who .name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .who .handle { font-size: 11px; color: var(--dim); }
-    .who .uid { font-size: 9px; color: var(--faint); font-family: "Consolas", monospace; margin-top: 2px; cursor: pointer; }
-    .who .uid:hover { color: var(--dim); }
-    .stats-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .stats-row { display: flex; gap: 6px; flex-wrap: wrap; }
     .chip { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 6px; padding: 3px 7px; font-size: 10px; color: var(--dim); white-space: nowrap; }
     .chip b { color: var(--text); font-weight: 700; }
     .chip.robux b { color: var(--studio); }
-    .chip.premium { border-color: var(--studio); }
-    .chip.premium b { color: var(--studio); }
     .group { display: flex; flex-direction: column; gap: 4px; }
     label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--faint); font-weight: 800; }
-    input[type="text"], input[type="number"] { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 7px; font-size: 12px; outline: none; width: 100%; transition: border-color .15s; }
-    input[type="text"]:focus, input[type="number"]:focus { border-color: var(--accent); }
+    input[type="text"] { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 7px; font-size: 12px; outline: none; width: 100%; transition: border-color .15s; }
+    input[type="text"]:focus { border-color: var(--accent); }
     input[type="text"]::placeholder { color: var(--faint); }
     .color-row { display: flex; align-items: center; gap: 8px; }
     input[type="color"] { -webkit-appearance: none; border: none; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; background: none; padding: 0; }
@@ -83,32 +74,25 @@
     .status.success { background: rgba(63,185,80,.08); border: 1px solid rgba(63,185,80,.2); color: var(--online); display: block; }
     .status.error { background: rgba(229,72,77,.08); border: 1px solid rgba(229,72,77,.2); color: var(--accent); display: block; }
     .status.info { background: rgba(76,141,255,.08); border: 1px solid rgba(76,141,255,.2); color: var(--ingame); display: block; }
+    .section-title { font-size: 9px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--faint); font-weight: 800; }
     .divider { height: 1px; background: var(--border); margin: 2px 0; }
-    .section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--faint); font-weight: 800; margin-bottom: 2px; }
-    .friend-list { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
-    .friend-list::-webkit-scrollbar { width: 3px; }
-    .friend-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    .friend-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: default; transition: background .1s; }
-    .friend-item:hover { background: var(--surface-alt); }
-    .friend-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-alt); object-fit: cover; flex-shrink: 0; }
-    .friend-info { flex: 1; min-width: 0; }
-    .friend-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .friend-status { font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .friend-status.online { color: var(--online); }
-    .friend-status.ingame { color: var(--ingame); }
-    .friend-status.studio { color: var(--studio); }
-    .presence-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-    .presence-dot.online { background: var(--online); }
-    .presence-dot.ingame { background: var(--ingame); }
-    .presence-dot.studio { background: var(--studio); }
-    .presence-dot.offline { background: var(--offline); }
-    .quick-action { display: flex; align-items: center; gap: 10px; padding: 9px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all .15s; }
-    .quick-action:hover { background: var(--surface-alt); border-color: var(--accent); }
-    .qa-icon { font-size: 16px; width: 28px; text-align: center; flex-shrink: 0; }
-    .qa-text { flex: 1; }
-    .qa-title { font-size: 12px; font-weight: 600; }
-    .qa-desc { font-size: 10px; color: var(--faint); }
-    .qa-arrow { color: var(--faint); font-size: 12px; }
+    .account-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+    .account-list::-webkit-scrollbar { width: 3px; }
+    .account-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .acc-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; transition: background .1s; }
+    .acc-item:hover { background: var(--surface-alt); }
+    .acc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; border: 2px solid var(--border); }
+    .acc-info { flex: 1; min-width: 0; }
+    .acc-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .acc-user { font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .acc-count { font-size: 10px; color: var(--faint); text-align: center; padding: 6px; }
+    .history-list { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow-y: auto; }
+    .history-list::-webkit-scrollbar { width: 3px; }
+    .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .history-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; }
+    .history-name { font-size: 11px; font-weight: 600; }
+    .history-time { font-size: 10px; color: var(--faint); }
+    .empty { text-align: center; padding: 16px; color: var(--faint); font-size: 11px; }
     .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
     .toggle-label { font-size: 12px; font-weight: 600; }
     .toggle-desc { font-size: 10px; color: var(--faint); }
@@ -118,49 +102,23 @@
     .toggle-slider::before { content: ""; position: absolute; width: 12px; height: 12px; border-radius: 50%; background: var(--dim); left: 2px; top: 2px; transition: all .2s; }
     .toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
     .toggle input:checked + .toggle-slider::before { background: #fff; transform: translateX(16px); }
-    .history-list { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
-    .history-list::-webkit-scrollbar { width: 3px; }
-    .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    .history-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
-    .history-name { font-size: 12px; font-weight: 600; }
-    .history-time { font-size: 10px; color: var(--faint); }
-    .empty { text-align: center; padding: 20px; color: var(--faint); font-size: 12px; }
-    .badge-count { background: var(--accent); color: #fff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 10px; margin-left: 4px; }
-    .server-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
-    .server-info { flex: 1; }
-    .server-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .server-players { font-size: 10px; color: var(--dim); }
-    .server-ping { font-size: 10px; color: var(--online); font-weight: 600; }
-    .cookie-display { background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 8px; font-family: "Consolas", monospace; font-size: 10px; color: var(--dim); word-break: break-all; max-height: 60px; overflow-y: auto; user-select: all; }
-    .cookie-display::-webkit-scrollbar { width: 3px; }
-    .cookie-display::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    .account-age { font-size: 10px; color: var(--faint); }
-    .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-    .inv-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer; transition: all .15s; }
-    .inv-item:hover { border-color: var(--accent); transform: scale(1.03); }
-    .inv-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
-    .inv-item-name { font-size: 9px; padding: 3px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; color: var(--dim); }
+    .badge { background: var(--accent); color: #fff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 10px; margin-left: 4px; }
     .foot { text-align: center; font-size: 9px; color: var(--faint); padding: 4px 0 2px; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-    .panel.active { animation: fadeIn .15s ease; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
     .loading { animation: pulse 1.2s ease-in-out infinite; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo"><b>V</b>YRE <span class="logo-version">1.1.1</span></div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="pill"><span class="dot" id="vyreDot"></span><span id="vyreText">…</span></div>
-        <button class="icon-btn" id="refreshAll" title="Refresh">⟳</button>
-      </div>
+      <div class="logo"><b>V</b>YRE <span class="logo-ver">1.1.1</span></div>
+      <div class="pill"><span class="dot" id="vyreDot"></span><span id="vyreText">…</span></div>
     </div>
 
     <div class="tabs">
       <button class="tab active" data-tab="capture">Capture</button>
-      <button class="tab" data-tab="friends">Friends</button>
-      <button class="tab" data-tab="tools">Tools</button>
+      <button class="tab" data-tab="accounts">Vault <span class="badge" id="accBadge">0</span></button>
       <button class="tab" data-tab="settings">Settings</button>
     </div>
 
@@ -170,10 +128,8 @@
         <div class="who">
           <div class="name" id="accName">Not logged in</div>
           <div class="handle" id="accHandle">Open roblox.com and sign in</div>
-          <div class="uid" id="accUid" title="Click to copy User ID"></div>
         </div>
       </div>
-
       <div class="stats-row" id="stats"></div>
 
       <div class="group">
@@ -197,151 +153,49 @@
       <button id="captureBtn" class="btn primary">Save to Vyre</button>
       <div class="row">
         <button id="copyBtn" class="btn ghost">Copy Cookie</button>
-        <button id="viewCookieBtn" class="btn ghost">View Cookie</button>
+        <button id="healthBtn" class="btn ghost">Check Health</button>
       </div>
-      <div id="cookieBox" class="cookie-display" style="display:none;"></div>
       <div id="status" class="status"></div>
 
-      <div class="section-title">Capture History</div>
+      <div class="section-title">Recent Captures</div>
       <div class="history-list" id="historyList">
         <div class="empty">No captures yet</div>
       </div>
     </div>
 
-    <div class="panel" id="panel-friends">
+    <div class="panel" id="panel-accounts">
       <div class="row" style="align-items:center;">
-        <div class="section-title" style="flex:1;">Online Friends <span class="badge-count" id="onlineCount">0</span></div>
-        <button class="btn ghost sm" id="refreshFriends">Refresh</button>
+        <div class="section-title" style="flex:1;">Saved in Vyre</div>
+        <button class="btn ghost sm" id="refreshAccounts">Refresh</button>
       </div>
-      <div class="friend-list" id="friendList">
-        <div class="empty loading">Loading friends…</div>
+      <div class="account-list" id="accountList">
+        <div class="empty loading">Connecting to Vyre…</div>
       </div>
-      <div class="divider"></div>
-      <div class="section-title">Offline Friends</div>
-      <div class="friend-list" id="offlineFriendList" style="max-height:120px;">
-        <div class="empty">—</div>
-      </div>
-    </div>
-
-    <div class="panel" id="panel-tools">
-      <div class="quick-action" id="qaProfile">
-        <div class="qa-icon">👤</div>
-        <div class="qa-text">
-          <div class="qa-title">Open Profile</div>
-          <div class="qa-desc">View your Roblox profile page</div>
-        </div>
-        <div class="qa-arrow">›</div>
-      </div>
-      <div class="quick-action" id="qaAvatar">
-        <div class="qa-icon">🎨</div>
-        <div class="qa-text">
-          <div class="qa-title">Avatar Editor</div>
-          <div class="qa-desc">Customize your Roblox avatar</div>
-        </div>
-        <div class="qa-arrow">›</div>
-      </div>
-      <div class="quick-action" id="qaInventory">
-        <div class="qa-icon">🎒</div>
-        <div class="qa-text">
-          <div class="qa-title">Inventory</div>
-          <div class="qa-desc">Browse your items and collectibles</div>
-        </div>
-        <div class="qa-arrow">›</div>
-      </div>
-      <div class="quick-action" id="qaTrades">
-        <div class="qa-icon">🔄</div>
-        <div class="qa-text">
-          <div class="qa-title">Trades</div>
-          <div class="qa-desc">View your pending and completed trades</div>
-        </div>
-        <div class="qa-arrow">›</div>
-      </div>
-      <div class="quick-action" id="qaMessages">
-        <div class="qa-icon">💬</div>
-        <div class="qa-text">
-          <div class="qa-title">Messages</div>
-          <div class="qa-desc">Read your Roblox inbox</div>
-        </div>
-        <div class="qa-arrow">›</div>
-      </div>
-      <div class="quick-action" id="qaSettings">
-        <div class="qa-icon">⚙</div>
-        <div class="qa-text">
-          <div class="qa-title">Account Settings</div>
-          <div class="qa-desc">Privacy, security, billing</div>
-        </div>
-        <div class="qa-arrow">›</div>
-      </div>
-      <div class="quick-action" id="qaCreate">
-        <div class="qa-icon">🛠</div>
-        <div class="qa-text">
-          <div class="qa-title">Create</div>
-          <div class="qa-desc">Open the Roblox creator dashboard</div>
-        </div>
-        <div class="qa-arrow">›</div>
-      </div>
-      <div class="quick-action" id="qaCatalog">
-        <div class="qa-icon">🛍</div>
-        <div class="qa-text">
-          <div class="qa-title">Avatar Shop</div>
-          <div class="qa-desc">Browse the marketplace</div>
-        </div>
-        <div class="qa-arrow">›</div>
-      </div>
-
-      <div class="divider"></div>
-      <div class="section-title">Cookie Tools</div>
-      <div class="row">
-        <button class="btn ghost sm" id="healthBtn">Check Health</button>
-        <button class="btn ghost sm" id="exportBtn">Export Cookie</button>
-      </div>
-      <div id="toolStatus" class="status"></div>
     </div>
 
     <div class="panel" id="panel-settings">
       <div class="toggle-row">
         <div>
           <div class="toggle-label">Auto-Capture on Login</div>
-          <div class="toggle-desc">Automatically save session when logging in</div>
+          <div class="toggle-desc">Save session when you log in to Roblox</div>
         </div>
         <label class="toggle"><input type="checkbox" id="autoCapture"><span class="toggle-slider"></span></label>
       </div>
       <div class="toggle-row">
         <div>
           <div class="toggle-label">Login Notifications</div>
-          <div class="toggle-desc">Show notification on new Roblox login</div>
+          <div class="toggle-desc">Alert on Roblox login/logout</div>
         </div>
         <label class="toggle"><input type="checkbox" id="loginNotify" checked><span class="toggle-slider"></span></label>
       </div>
-      <div class="toggle-row">
-        <div>
-          <div class="toggle-label">Friend Activity Alerts</div>
-          <div class="toggle-desc">Notify when friends join games</div>
-        </div>
-        <label class="toggle"><input type="checkbox" id="friendAlerts"><span class="toggle-slider"></span></label>
-      </div>
-      <div class="toggle-row">
-        <div>
-          <div class="toggle-label">Cookie Expiry Warning</div>
-          <div class="toggle-desc">Alert before session cookie expires</div>
-        </div>
-        <label class="toggle"><input type="checkbox" id="cookieExpiry" checked><span class="toggle-slider"></span></label>
-      </div>
-
-      <div class="divider"></div>
-      <div class="section-title">Quick Launch Place ID</div>
-      <div class="group">
-        <input type="text" id="quickPlaceId" placeholder="e.g. 2753915549">
-      </div>
-
       <div class="divider"></div>
       <div class="row">
         <button class="btn ghost sm" id="clearHistoryBtn">Clear History</button>
-        <button class="btn danger sm" id="clearAllBtn">Reset All Data</button>
+        <button class="btn danger sm" id="clearAllBtn">Reset Extension</button>
       </div>
     </div>
 
-    <div class="foot">Vyre Companion v1.1.1 — Kyrro</div>
+    <div class="foot">Vyre Companion — Kyrro</div>
   </div>
   <script src="popup.js"></script>
 </body>

@@ -143,6 +143,7 @@ class MainWindow(QWidget):
         if self._tcp_server.listen(port=59124):
             self._server.bind(self._tcp_server)
             self._server.route("/add_account", self._api_add_account)
+            self._server.route("/list_accounts", self._api_list_accounts)
 
     def _wire_sidebar(self) -> None:
         s = self._sidebar
@@ -517,6 +518,24 @@ class MainWindow(QWidget):
         QTimer.singleShot(100, self, self._backfill_identities)
         QTimer.singleShot(500, self, lambda: self._toast.show_message(f"Added {name} via Extension"))
         return QHttpServerResponse("Account added", QHttpServerResponse.StatusCode.Ok)
+
+    def _api_list_accounts(self, request: QHttpServerRequest) -> QHttpServerResponse:
+        import json
+        accounts = self._vault.list()
+        result = []
+        for a in accounts:
+            result.append({
+                "id": a.id,
+                "name": a.name,
+                "username": a.username or "",
+                "display_name": a.display_name or "",
+                "user_id": a.user_id or "",
+                "color": a.color or "#e5484d",
+                "presence": getattr(a, "presence", None) or "offline",
+            })
+        body = json.dumps(result)
+        resp = QHttpServerResponse(body, QHttpServerResponse.StatusCode.Ok)
+        return resp
 
     def _check_health(self, account_id: str) -> None:
         account = self._account_or_warn(account_id)

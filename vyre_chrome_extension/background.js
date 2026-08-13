@@ -3,7 +3,7 @@ const VYRE_URL = "http://localhost:59124";
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "vyre-add",
-    title: "Add this Roblox account to Vyre",
+    title: "Save this Roblox session to Vyre",
     contexts: ["page"],
     documentUrlPatterns: ["*://*.roblox.com/*"],
   });
@@ -91,12 +91,12 @@ let lastCookieValue = null;
 
 chrome.cookies.onChanged.addListener((changeInfo) => {
   if (changeInfo.cookie.name !== ".ROBLOSECURITY") return;
-  if (changeInfo.cookie.domain.includes("roblox.com") === false) return;
+  if (!changeInfo.cookie.domain.includes("roblox.com")) return;
 
   if (changeInfo.removed) {
     lastCookieValue = null;
     chrome.storage.local.get(["loginNotify"], (s) => {
-      if (s.loginNotify !== false) notify("Vyre", "Roblox session ended — cookie removed.");
+      if (s.loginNotify !== false) notify("Vyre", "Roblox session ended.");
     });
     return;
   }
@@ -108,8 +108,7 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
   chrome.storage.local.get(["autoCapture", "loginNotify"], (settings) => {
     if (settings.loginNotify !== false) {
       getAuthUser().then((me) => {
-        const who = me ? me.name : "Unknown";
-        notify("Vyre", "Roblox login detected: " + who);
+        notify("Vyre", "Roblox login detected" + (me ? ": " + me.name : ""));
       });
     }
 
@@ -121,66 +120,9 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, cookie: newVal, proxy: "", color: "#e5484d" }),
         })
-          .then((res) => { if (res.ok) notify("Vyre", "Auto-captured session for " + name); })
+          .then((res) => { if (res.ok) notify("Vyre", "Auto-captured " + name); })
           .catch(() => {});
       });
     }
   });
-});
-
-chrome.alarms.create("friendCheck", { periodInMinutes: 5 });
-
-let previousOnlineFriends = new Set();
-
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name !== "friendCheck") return;
-  chrome.storage.local.get(["friendAlerts"], (s) => {
-    if (!s.friendAlerts) return;
-    getAuthUser().then((me) => {
-      if (!me) return;
-      fetch(`https://friends.roblox.com/v1/users/${me.id}/friends`)
-        .then((res) => res.json())
-        .then((data) => {
-          const friendIds = (data.data || []).map((f) => f.id);
-          if (!friendIds.length) return;
-          return fetch("https://presence.roblox.com/v1/presence/users", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userIds: friendIds }),
-            credentials: "include",
-          }).then((res) => res.json());
-        })
-        .then((presenceData) => {
-          if (!presenceData) return;
-          const currentOnline = new Set();
-          const nameMap = {};
-          (presenceData.userPresences || []).forEach((p) => {
-            if (p.userPresenceType === 2) {
-              currentOnline.add(p.userId);
-              nameMap[p.userId] = p.lastLocation || "a game";
-            }
-          });
-          currentOnline.forEach((uid) => {
-            if (!previousOnlineFriends.has(uid)) {
-              fetch(`https://users.roblox.com/v1/users/${uid}`)
-                .then((res) => res.json())
-                .then((user) => {
-                  notify("Friend Activity", user.displayName + " joined " + (nameMap[uid] || "a game"));
-                })
-                .catch(() => {});
-            }
-          });
-          previousOnlineFriends = currentOnline;
-        })
-        .catch(() => {});
-    });
-  });
-});
-
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === "settingChanged") {
-    if (msg.key === "friendAlerts" && msg.value) {
-      previousOnlineFriends = new Set();
-    }
-  }
 });
