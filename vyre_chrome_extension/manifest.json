@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Vyre Companion",
+  "version": "1.1.1",
+  "description": "Full-featured Roblox companion — capture sessions, manage accounts, monitor friends, track game servers, and more.",
+  "permissions": [
+    "cookies",
+    "storage",
+    "contextMenus",
+    "notifications",
+    "tabs",
+    "alarms",
+    "webNavigation",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "*://*.roblox.com/*",
+    "http://localhost/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Vyre Companion",
+    "default_icon": {
+      "16": "icon.png",
+      "32": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "icons": {
+    "16": "icon.png",
+    "32": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
