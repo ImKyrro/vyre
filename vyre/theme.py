@@ -267,6 +267,15 @@ def stylesheet() -> str:
         padding: 6px 8px;
         border-radius: 6px;
     }}
+    QProgressBar {{
+        background-color: {p['surface_alt']};
+        border: 1px solid {p['border']};
+        border-radius: 5px;
+    }}
+    QProgressBar::chunk {{
+        background-color: {p['accent']};
+        border-radius: 5px;
+    }}
     QLabel#Toast {{
         background-color: {p['surface_alt']};
         border: 1px solid {p['border_strong']};
