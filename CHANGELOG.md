@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.4
+
+- Added Quick Sign In code copy button to easily copy generated auth codes
+- Fixed Chrome companion extension "Could not connect to Vyre" by implementing CORS preflight and endpoint headers
+- Added local /launch_game API endpoint enabling Roblox game launching directly from companion extension
+- Added rounded app window corners and border outline stylesheet rules in frameless mode
+- Added TitleBar update downloading button that replaces the current app and restarts on click
+- Added Private Server Link input and saving options on accounts
+- Added automatic Place ID extraction from private server links in LaunchDialog
+- Implemented companion extension Vault UI Quick Launch box and connected version badge
+- Added detailed step-by-step MCP connection instructions inside Settings
+
 ## 1.1.3
 
 - Fixed missing QPushButton NameError import crash on MainWindow TitleBar buttons

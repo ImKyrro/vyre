@@ -102,6 +102,8 @@ class LaunchDialog(QDialog):
         layout.addWidget(self._label("Private server link or code (optional)"))
         self._private = QLineEdit()
         self._private.setPlaceholderText("Private server link or access code")
+        if self._account.private_server_link:
+            self._private.setText(self._account.private_server_link)
         layout.addWidget(self._private)
 
         self._launch_btn = ProcessingButton("Launch game")
@@ -181,8 +183,13 @@ class LaunchDialog(QDialog):
 
     def _launch_quick(self) -> None:
         place_id = launcher.parse_place_id(self._place.text())
-        job_id = self._job.text().strip()
         private = self._private.text().strip()
+        if not place_id and private:
+            place_id = launcher.parse_place_id(private)
+        if not place_id:
+            self._set_status("Enter a Place ID or game link.", PALETTE["danger"])
+            return
+        job_id = self._job.text().strip()
         access_code, link_code = launcher.parse_private_server(private) if private else ("", "")
         self._launch(place_id, job_id, access_code, link_code, self._launch_btn)
 

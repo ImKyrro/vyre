@@ -281,6 +281,18 @@ class SettingsDialog(QDialog):
             lambda: QGuiApplication.clipboard().setText(self._mcp_box.toPlainText())
         )
         layout.addWidget(copy, alignment=Qt.AlignLeft)
+
+        guide = QLabel(
+            "How to connect (Cursor / Windsurf):\n"
+            "1. Open Settings -> Features -> MCP.\n"
+            "2. Click '+ Add New MCP Server'.\n"
+            "3. Set Name: 'vyre', Type: 'command', Command: 'python'.\n"
+            "4. Copy the parameters shown in the JSON snippet above into the config fields."
+        )
+        guide.setObjectName("Faint")
+        guide.setWordWrap(True)
+        layout.addWidget(guide)
+
         layout.addStretch(1)
         return widget
 

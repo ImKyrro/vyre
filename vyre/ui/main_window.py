@@ -86,6 +86,36 @@ class _UpdateWorker(QThread):
         self.done.emit(updater.check(self._url))
 
 
+class _AppUpdateWorker(QThread):
+    progress = Signal(int)
+    done = Signal(bool, str)
+
+    def __init__(self, url: str, dest_path: str, parent=None):
+        super().__init__(parent)
+        self._url = url
+        self._dest_path = dest_path
+
+    def run(self):
+        try:
+            import urllib.request
+            request = urllib.request.Request(self._url, headers={"User-Agent": "VyreUpdate"})
+            with urllib.request.urlopen(request, timeout=30) as response:
+                total = int(response.headers.get("Content-Length", 0))
+                done = 0
+                with open(self._dest_path, "wb") as handle:
+                    while True:
+                        chunk = response.read(262144)
+                        if not chunk:
+                            break
+                        handle.write(chunk)
+                        done += len(chunk)
+                        pct = int(done * 100 / total) if total else 50
+                        self.progress.emit(pct)
+            self.done.emit(True, "")
+        except Exception as err:
+            self.done.emit(False, str(err))
+
+
 class TitleBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -98,6 +128,14 @@ class TitleBar(QWidget):
         self._title.setStyleSheet("font-weight: 800; font-size: 11px; letter-spacing: 2px; color: #f2f2f3;")
         layout.addWidget(self._title)
         layout.addStretch(1)
+
+        self._update_btn = QPushButton("Download Update")
+        self._update_btn.setStyleSheet("background-color: #e5484d; color: #ffffff; border: none; border-radius: 4px; padding: 2px 10px; font-size: 11px; font-weight: bold; margin-right: 6px;")
+        self._update_btn.setCursor(Qt.PointingHandCursor)
+        self._update_btn.hide()
+        self._update_btn.clicked.connect(self._on_update_clicked)
+        layout.addWidget(self._update_btn)
+
         self._min_btn = QPushButton("—")
         self._min_btn.setObjectName("TitleMin")
         self._min_btn.setFixedSize(28, 28)
@@ -117,6 +155,65 @@ class TitleBar(QWidget):
         self._close_btn.clicked.connect(self._close)
         layout.addWidget(self._close_btn)
         self._drag_position = None
+
+    def show_update(self, download_url: str, version: str) -> None:
+        self._download_url = download_url
+        self._new_version = version
+        self._update_btn.setText(f"Update to v{version}")
+        self._update_btn.show()
+
+    def _on_update_clicked(self, checked: bool = False) -> None:
+        self._update_btn.setEnabled(False)
+        self._update_btn.setText("Downloading (0%)...")
+        import sys
+        from pathlib import Path
+        dest = Path(sys.executable).parent / "Vyre.new"
+        self._worker = _AppUpdateWorker(self._download_url, str(dest), self)
+        self._worker.progress.connect(self._on_download_progress)
+        self._worker.done.connect(self._on_download_done)
+        self._worker.start()
+
+    def _on_download_progress(self, percent: int) -> None:
+        self._update_btn.setText(f"Downloading ({percent}%)...")
+
+    def _on_download_done(self, success: bool, error: str) -> None:
+        if success:
+            self._update_btn.setEnabled(True)
+            self._update_btn.setText("Restart Vyre")
+            self._update_btn.setStyleSheet("background-color: #30a46c; color: #ffffff; border: none; border-radius: 4px; padding: 2px 10px; font-size: 11px; font-weight: bold; margin-right: 6px;")
+            self._update_btn.clicked.disconnect()
+            self._update_btn.clicked.connect(self._restart_app)
+        else:
+            self._update_btn.setEnabled(True)
+            self._update_btn.setText(f"Failed: {error[:15]}")
+
+    def _restart_app(self, checked: bool = False) -> None:
+        import sys
+        import os
+        import subprocess
+        from pathlib import Path
+        from PySide6.QtWidgets import QApplication
+        exe_path = Path(sys.executable)
+        if exe_path.name.lower() == "vyre.exe":
+            new_exe_path = exe_path.with_name("Vyre.new")
+            pid = os.getpid()
+            ps_cmd = (
+                f"Start-Sleep -Seconds 1; "
+                f"while (Get-Process -Id {pid} -ErrorAction SilentlyContinue) {{ Start-Sleep -Milliseconds 100 }}; "
+                f"Move-Item -Path '{new_exe_path}' -Destination '{exe_path}' -Force; "
+                f"Start-Process -FilePath '{exe_path}'"
+            )
+            try:
+                subprocess.Popen(["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_cmd])
+            except Exception:
+                pass
+        else:
+            script = Path(__file__).resolve().parent.parent / "Vyre.pyw"
+            try:
+                subprocess.Popen([sys.executable, str(script)])
+            except Exception:
+                pass
+        QApplication.quit()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -162,6 +259,7 @@ class MainWindow(QWidget):
         self.setWindowIcon(icon)
         self.setMinimumSize(820, 560)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
 
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
@@ -212,8 +310,10 @@ class MainWindow(QWidget):
         self._tcp_server = QTcpServer(self)
         if self._tcp_server.listen(port=59124):
             self._server.bind(self._tcp_server)
+            self._server.route("/", self._api_index)
             self._server.route("/add_account", self._api_add_account)
             self._server.route("/list_accounts", self._api_list_accounts)
+            self._server.route("/launch_game", self._api_launch_game)
 
     def _wire_sidebar(self) -> None:
         s = self._sidebar
@@ -562,34 +662,58 @@ class MainWindow(QWidget):
             self._sidebar.show_update(False)
             return
         self._sidebar.show_update(True)
-        from .update_dialog import UpdateDialog
-
+        self._titlebar.show_update(info["download_url"], info["version"])
         self._toast.show_message(f"Update available — v{info['version']}")
-        UpdateDialog(updater.UPDATE_URL, self).exec()
+
+    def _cors_response(self, data, status=None) -> QHttpServerResponse:
+        from PySide6.QtNetwork import QHttpHeaders
+        headers = QHttpHeaders()
+        headers.append("Access-Control-Allow-Origin", "*")
+        headers.append("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        headers.append("Access-Control-Allow-Headers", "Content-Type")
+        if status is not None:
+            resp = QHttpServerResponse(data, status)
+        else:
+            resp = QHttpServerResponse(data)
+        resp.setHeaders(headers)
+        return resp
+
+    def _api_index(self, request: QHttpServerRequest) -> QHttpServerResponse:
+        if request.method() == QHttpServerRequest.Method.Options:
+            return self._cors_response(QHttpServerResponse.StatusCode.Ok)
+        import json
+        from .. import __version__
+        body = json.dumps({"app": "Vyre", "version": __version__})
+        return self._cors_response(body, QHttpServerResponse.StatusCode.Ok)
 
     def _api_add_account(self, request: QHttpServerRequest) -> QHttpServerResponse:
+        if request.method() == QHttpServerRequest.Method.Options:
+            return self._cors_response(QHttpServerResponse.StatusCode.Ok)
         import json
         if request.method() != QHttpServerRequest.Method.Post:
-            return QHttpServerResponse("Method Not Allowed", QHttpServerResponse.StatusCode.MethodNotAllowed)
+            return self._cors_response("Method Not Allowed", QHttpServerResponse.StatusCode.MethodNotAllowed)
         try:
             body = bytes(request.body()).decode("utf-8")
             payload = json.loads(body)
         except Exception:
-            return QHttpServerResponse("Invalid JSON Payload", QHttpServerResponse.StatusCode.BadRequest)
+            return self._cors_response("Invalid JSON Payload", QHttpServerResponse.StatusCode.BadRequest)
         name = payload.get("name", "").strip()
         cookie = payload.get("cookie", "").strip()
         proxy = payload.get("proxy", "").strip()
         color = payload.get("color", "#e5484d").strip()
+        private_server_link = payload.get("private_server_link", "").strip()
         if not name or not cookie:
-            return QHttpServerResponse("Missing name or cookie", QHttpServerResponse.StatusCode.BadRequest)
-        account = Account(name=name, cookie=cookie, proxy=proxy, color=color)
+            return self._cors_response("Missing name or cookie", QHttpServerResponse.StatusCode.BadRequest)
+        account = Account(name=name, cookie=cookie, proxy=proxy, color=color, private_server_link=private_server_link)
         self._vault.add(account)
         QTimer.singleShot(0, self, self._refresh)
         QTimer.singleShot(100, self, self._backfill_identities)
         QTimer.singleShot(500, self, lambda: self._toast.show_message(f"Added {name} via Extension"))
-        return QHttpServerResponse("Account added", QHttpServerResponse.StatusCode.Ok)
+        return self._cors_response("Account added", QHttpServerResponse.StatusCode.Ok)
 
     def _api_list_accounts(self, request: QHttpServerRequest) -> QHttpServerResponse:
+        if request.method() == QHttpServerRequest.Method.Options:
+            return self._cors_response(QHttpServerResponse.StatusCode.Ok)
         import json
         accounts = self._vault.list()
         result = []
@@ -604,8 +728,36 @@ class MainWindow(QWidget):
                 "presence": getattr(a, "presence", None) or "offline",
             })
         body = json.dumps(result)
-        resp = QHttpServerResponse(body, QHttpServerResponse.StatusCode.Ok)
-        return resp
+        return self._cors_response(body, QHttpServerResponse.StatusCode.Ok)
+
+    def _api_launch_game(self, request: QHttpServerRequest) -> QHttpServerResponse:
+        if request.method() == QHttpServerRequest.Method.Options:
+            return self._cors_response(QHttpServerResponse.StatusCode.Ok)
+        import json
+        if request.method() != QHttpServerRequest.Method.Post:
+            return self._cors_response("Method Not Allowed", QHttpServerResponse.StatusCode.MethodNotAllowed)
+        try:
+            body = bytes(request.body()).decode("utf-8")
+            payload = json.loads(body)
+        except Exception:
+            return self._cors_response("Invalid JSON Payload", QHttpServerResponse.StatusCode.BadRequest)
+        account_id = payload.get("account_id", "").strip()
+        place_id = payload.get("place_id", "").strip()
+        private_link = payload.get("private_server_link", "").strip()
+        account = self._vault.get(account_id)
+        if not account:
+            return self._cors_response("Account not found", QHttpServerResponse.StatusCode.NotFound)
+        from .. import launcher
+        access_code, link_code = launcher.parse_private_server(private_link) if private_link else ("", "")
+        if not place_id and private_link:
+            place_id = launcher.parse_place_id(private_link)
+        if not place_id:
+            return self._cors_response("Missing place_id", QHttpServerResponse.StatusCode.BadRequest)
+        QTimer.singleShot(0, self, lambda: launcher.launch_as_account(
+            account.cookie, place_id, access_code=access_code, link_code=link_code, proxy=account.proxy
+        ))
+        QTimer.singleShot(100, self, lambda: self._toast.show_message(f"Launching game via Extension"))
+        return self._cors_response("Launch initiated", QHttpServerResponse.StatusCode.Ok)
 
     def _check_health(self, account_id: str) -> None:
         account = self._account_or_warn(account_id)

@@ -33,6 +33,7 @@ class BrowserPanel(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("BrowserPanel")
         self._profiles: dict[str, QWebEngineProfile] = {}
         self._pages: dict[str, QWebEnginePage] = {}
         self._seeded: set[str] = set()

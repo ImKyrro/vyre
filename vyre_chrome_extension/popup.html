@@ -136,6 +136,10 @@
         <label for="accountName">Save as</label>
         <input type="text" id="accountName" placeholder="Account nickname">
       </div>
+      <div class="group">
+        <label for="privateLink">Private Server Link (optional)</label>
+        <input type="text" id="privateLink" placeholder="roblox.com/games/... or code">
+      </div>
       <div class="row">
         <div class="group">
           <label for="proxy">Proxy</label>
@@ -167,6 +171,12 @@
       <div class="row" style="align-items:center;">
         <div class="section-title" style="flex:1;">Saved in Vyre</div>
         <button class="btn ghost sm" id="refreshAccounts">Refresh</button>
+      </div>
+      <div class="card" style="display:flex; flex-direction:column; gap:6px; padding:10px;">
+        <div class="group">
+          <label for="launchGameInput">Quick Launch (Place ID / Private Server Link)</label>
+          <input type="text" id="launchGameInput" placeholder="e.g. 2753915549">
+        </div>
       </div>
       <div class="account-list" id="accountList">
         <div class="empty loading">Connecting to Vyre…</div>

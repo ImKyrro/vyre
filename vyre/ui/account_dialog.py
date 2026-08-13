@@ -159,6 +159,11 @@ class AccountDialog(QDialog):
         self._proxy.setPlaceholderText("e.g. 12.34.56.78:8080 or user:pass@host:port")
         root.addWidget(self._proxy)
 
+        root.addWidget(self._label("Private Server Link (optional)"))
+        self._private_server = QLineEdit(self._account.private_server_link)
+        self._private_server.setPlaceholderText("e.g. https://www.roblox.com/games/place_id/name?privateServerLinkCode=...")
+        root.addWidget(self._private_server)
+
         self._error = QLabel("")
         self._error.setStyleSheet(f"color: {PALETTE['danger']}; font-size: 12px;")
         self._error.setVisible(False)
@@ -301,6 +306,7 @@ class AccountDialog(QDialog):
         self._account.cookie = cookie
         self._account.note = self._note.text().strip()
         self._account.proxy = self._proxy.text().strip()
+        self._account.private_server_link = self._private_server.text().strip()
         self.accept()
 
     def result_account(self) -> Account:
@@ -323,11 +329,20 @@ class AccountDialog(QDialog):
         self._quick_btn.setCursor(Qt.PointingHandCursor)
         self._quick_btn.clicked.connect(self._start_quick_login)
         layout.addWidget(self._quick_btn, alignment=Qt.AlignLeft)
+        
+        self._quick_code_layout = QHBoxLayout()
+        self._quick_code_layout.setAlignment(Qt.AlignCenter)
         self._quick_code_label = QLabel("")
         self._quick_code_label.setStyleSheet("font-size: 32px; font-weight: 800; color: #e5484d; letter-spacing: 4px;")
-        self._quick_code_label.setAlignment(Qt.AlignCenter)
-        self._quick_code_label.hide()
-        layout.addWidget(self._quick_code_label)
+        self._quick_code_layout.addWidget(self._quick_code_label)
+        self._quick_copy_btn = QPushButton("Copy")
+        self._quick_copy_btn.setCursor(Qt.PointingHandCursor)
+        self._quick_copy_btn.setFixedSize(64, 28)
+        self._quick_copy_btn.clicked.connect(self._copy_quick_code)
+        self._quick_copy_btn.hide()
+        self._quick_code_layout.addWidget(self._quick_copy_btn)
+        layout.addLayout(self._quick_code_layout)
+
         self._quick_status = QLabel("")
         self._quick_status.setObjectName("Muted")
         self._quick_status.setAlignment(Qt.AlignCenter)
@@ -336,6 +351,12 @@ class AccountDialog(QDialog):
         layout.addWidget(self._quick_status)
         layout.addStretch(1)
         return widget
+
+    def _copy_quick_code(self, checked: bool = False) -> None:
+        from PySide6.QtGui import QGuiApplication
+        code = self._quick_code_label.text()
+        if code:
+            QGuiApplication.clipboard().setText(code)
 
     def _start_quick_login(self) -> None:
         self._quick_btn.setEnabled(False)
@@ -352,6 +373,7 @@ class AccountDialog(QDialog):
         self._quick_btn.hide()
         self._quick_code_label.setText(data["code"])
         self._quick_code_label.show()
+        self._quick_copy_btn.show()
         self._quick_status.setText("Waiting for you to enter code at roblox.com/quick-login...")
 
     def _on_quick_status(self, status: str, msg: str) -> None:
@@ -362,10 +384,12 @@ class AccountDialog(QDialog):
             self._quick_btn.setEnabled(True)
             self._quick_btn.setText("Generate code")
             self._quick_code_label.hide()
+            self._quick_copy_btn.hide()
 
     def _on_quick_success(self, cookie: str) -> None:
         self._quick_worker.stop()
         self._quick_code_label.hide()
+        self._quick_copy_btn.hide()
         self._quick_status.setText("Login successful! Verifying account details...")
         self._cookie.setPlainText(cookie)
         self._verify(cookie)

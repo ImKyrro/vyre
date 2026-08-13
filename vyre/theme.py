@@ -38,15 +38,22 @@ def stylesheet() -> str:
         color: {p['text']};
         outline: none;
     }}
-    QMainWindow, QDialog, QWidget#Root {{
+    QMainWindow, QDialog {{
         background-color: {p['bg']};
+    }}
+    QWidget#Root {{
+        background-color: {p['bg']};
+        border: 1px solid {p['border_strong']};
+        border-radius: 12px;
     }}
     QWidget#Sidebar {{
         background-color: {p['surface']};
         border-right: 1px solid {p['border']};
+        border-bottom-left-radius: 11px;
     }}
-    QWidget#DetailPane {{
+    QWidget#DetailPane, QWidget#BrowserPanel {{
         background-color: {p['bg']};
+        border-bottom-right-radius: 11px;
     }}
     QWidget#Card {{
         background-color: {p['surface']};
@@ -288,6 +295,8 @@ def stylesheet() -> str:
     QWidget#TitleBar {{
         background-color: {p['surface_alt']};
         border-bottom: 1px solid {p['border']};
+        border-top-left-radius: 11px;
+        border-top-right-radius: 11px;
     }}
     QPushButton#TitleMin, QPushButton#TitleMax, QPushButton#TitleClose {{
         background: transparent;

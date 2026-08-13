@@ -20,8 +20,15 @@ function checkVyre() {
   const dot = el("vyreDot");
   const text = el("vyreText");
   timeoutFetch(VYRE_URL + "/", { method: "GET" }, 1500)
-    .then(() => { dot.className = "dot on"; text.textContent = "Connected"; })
-    .catch(() => { dot.className = "dot off"; text.textContent = "Offline"; });
+    .then((res) => res.json())
+    .then((data) => {
+      dot.className = "dot on";
+      text.textContent = "Connected (v" + data.version + ")";
+    })
+    .catch(() => {
+      dot.className = "dot off";
+      text.textContent = "Offline";
+    });
 }
 
 function getCookie() {
@@ -118,14 +125,53 @@ function loadVaultAccounts() {
       list.innerHTML = accounts.map((a) => {
         const displayName = a.display_name || a.username || a.name;
         const sub = a.username ? "@" + a.username : a.name;
-        return `<div class="acc-item">
-          <div class="acc-dot" style="background:${a.color};border-color:${a.color}"></div>
-          <div class="acc-info">
-            <div class="acc-name">${displayName}</div>
-            <div class="acc-user">${sub}</div>
+        return `<div class="acc-item" style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
+            <div class="acc-dot" style="background:${a.color};border-color:${a.color}"></div>
+            <div class="acc-info" style="min-width:0; flex:1;">
+              <div class="acc-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${displayName}</div>
+              <div class="acc-user" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sub}</div>
+            </div>
           </div>
+          <button class="btn ghost sm play-btn" data-id="${a.id}" style="padding:4px 8px; font-size:10px; width:auto; flex-shrink:0;">▶ Launch</button>
         </div>`;
       }).join("");
+
+      list.querySelectorAll(".play-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const accountId = btn.dataset.id;
+          const gameVal = el("launchGameInput").value.trim();
+          if (!gameVal) {
+            alert("Please enter a Place ID or Private Server Link in the Quick Launch box.");
+            return;
+          }
+          btn.disabled = true;
+          btn.textContent = "Launching…";
+          let payload = { account_id: accountId };
+          if (gameVal.includes("privateServerLinkCode") || gameVal.includes("linkCode")) {
+            payload.private_server_link = gameVal;
+          } else {
+            payload.place_id = gameVal;
+          }
+          timeoutFetch(VYRE_URL + "/launch_game", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }, 5000)
+            .then((res) => {
+              if (res.ok) {
+                btn.textContent = "Launched!";
+              } else {
+                btn.textContent = "Failed";
+              }
+              setTimeout(() => { btn.disabled = false; btn.textContent = "▶ Launch"; }, 2000);
+            })
+            .catch(() => {
+              btn.textContent = "Offline";
+              setTimeout(() => { btn.disabled = false; btn.textContent = "▶ Launch"; }, 2000);
+            });
+        });
+      });
     })
     .catch(() => {
       list.innerHTML = '<div class="empty">Could not connect to Vyre</div>';
@@ -146,17 +192,19 @@ function save() {
     const name = el("accountName").value.trim() || "Roblox Account";
     const proxy = el("proxy").value.trim();
     const color = el("color").value;
+    const private_server_link = el("privateLink").value.trim();
     chrome.storage.local.set({ proxy, color });
     showStatus("Saving to Vyre…", "info");
     timeoutFetch(VYRE_URL + "/add_account", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, cookie, proxy, color }),
+      body: JSON.stringify({ name, cookie, proxy, color, private_server_link }),
     }, 4000)
       .then((res) => { if (!res.ok) throw new Error("status " + res.status); })
       .then(() => {
         showStatus("Saved " + name + " to Vyre.", "success");
         btn.disabled = false;
+        el("privateLink").value = "";
         addHistory(name);
         loadVaultAccounts();
       })
@@ -261,6 +309,8 @@ document.addEventListener("DOMContentLoaded", () => {
     el("color").value = "#e5484d";
     el("colorText").textContent = "#e5484d";
     el("accountName").value = "";
+    el("privateLink").value = "";
+    el("launchGameInput").value = "";
     el("autoCapture").checked = false;
     el("loginNotify").checked = true;
     renderHistory([]);
