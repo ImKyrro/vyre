@@ -22,12 +22,21 @@ def parse_place_id(text: str) -> str:
     return match.group(1) if match else ""
 
 
-def parse_access_code(text: str) -> str:
+def parse_private_server(text: str) -> tuple[str, str]:
     value = (text or "").strip()
-    match = re.search(r"(?:accessCode|privateServerLinkCode|linkCode|code)=([\w-]+)", value, re.IGNORECASE)
-    if match:
-        return match.group(1)
-    return value
+    link_match = re.search(r"privateServerLinkCode=([\w-]+)", value, re.IGNORECASE)
+    if link_match:
+        return "", link_match.group(1)
+    access_match = re.search(r"accessCode=([\w-]+)", value, re.IGNORECASE)
+    if access_match:
+        return access_match.group(1), ""
+    code_match = re.search(r"(?:linkCode|code)=([\w-]+)", value, re.IGNORECASE)
+    if code_match:
+        return "", code_match.group(1)
+    uuid_pattern = r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    if re.match(uuid_pattern, value):
+        return value, ""
+    return "", value
 
 
 def build_deeplink(place_id: str, job_id: str = "", access_code: str = "", link_code: str = "") -> str:

@@ -21,6 +21,7 @@ def main() -> None:
         "--assume-yes-for-downloads",
         "--enable-plugin=pyside6",
         "--include-package=vyre",
+        "--include-data-dir=vyre/assets=vyre/assets",
         "--windows-console-mode=disable",
         f"--windows-icon-from-ico={ICON}",
         "--company-name=Kyrro",

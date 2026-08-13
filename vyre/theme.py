@@ -285,4 +285,25 @@ def stylesheet() -> str:
         font-size: 12px;
         font-weight: 600;
     }}
+    QWidget#TitleBar {{
+        background-color: {p['surface_alt']};
+        border-bottom: 1px solid {p['border']};
+    }}
+    QPushButton#TitleMin, QPushButton#TitleMax, QPushButton#TitleClose {{
+        background: transparent;
+        border: none;
+        border-radius: 4px;
+        color: {p['text_dim']};
+        font-size: 11px;
+        font-weight: bold;
+        padding: 0;
+    }}
+    QPushButton#TitleMin:hover, QPushButton#TitleMax:hover {{
+        background-color: {p['surface_hover']};
+        color: {p['text']};
+    }}
+    QPushButton#TitleClose:hover {{
+        background-color: {p['accent']};
+        color: #ffffff;
+    }}
     """

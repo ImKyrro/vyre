@@ -305,3 +305,63 @@ def profile_url(user_id: str) -> str:
 
 def game_url(place_id: str) -> str:
     return f"https://www.roblox.com/games/{place_id}"
+
+
+def create_quick_login(proxy: str = "") -> dict:
+    return _post(
+        "https://apis.roblox.com/auth-token-service/v1/login/create",
+        "",
+        {},
+        proxy=proxy,
+    )
+
+
+def poll_quick_login_status(code: str, private_key: str, proxy: str = "") -> dict:
+    return _post(
+        "https://apis.roblox.com/auth-token-service/v1/login/status",
+        "",
+        {"code": code, "privateKey": private_key},
+        proxy=proxy,
+    )
+
+
+def complete_quick_login(code: str, private_key: str, proxy: str = "") -> str:
+    payload = {"ctype": "AuthToken", "cvalue": code, "password": private_key}
+    data = json.dumps(payload).encode("utf-8")
+    csrf = ""
+    for _ in range(2):
+        headers = {
+            "User-Agent": _UA,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        if csrf:
+            headers["X-CSRF-TOKEN"] = csrf
+        status, resp_headers, body = _open(
+            urllib.request.Request(
+                "https://auth.roblox.com/v2/login",
+                data=data,
+                headers=headers,
+                method="POST",
+            ),
+            12.0,
+            proxy,
+        )
+        if status == 403 and resp_headers.get("x-csrf-token"):
+            csrf = resp_headers.get("x-csrf-token")
+            continue
+        if status == 200:
+            cookie_headers = []
+            if hasattr(resp_headers, "get_all"):
+                cookie_headers = resp_headers.get_all("Set-Cookie") or []
+            elif hasattr(resp_headers, "getheaders"):
+                cookie_headers = [v for k, v in resp_headers.getheaders() if k.lower() == "set-cookie"]
+            for h in cookie_headers:
+                if COOKIE_NAME in h:
+                    parts = h.split(";")
+                    for p in parts:
+                        if p.strip().startswith(COOKIE_NAME + "="):
+                            _, _, val = p.partition("=")
+                            return val.strip()
+        break
+    return ""

@@ -16,6 +16,49 @@ from ..models import Account
 from ..theme import PALETTE
 from .login_capture import LoginCaptureDialog
 
+
+class _QuickLoginWorker(QThread):
+    code_created = Signal(dict)
+    status_updated = Signal(str, str)
+    success = Signal(str)
+
+    def __init__(self, proxy: str = "", parent=None):
+        super().__init__(parent)
+        self._proxy = proxy
+        self._running = True
+
+    def run(self) -> None:
+        import time
+        data = roblox.create_quick_login(proxy=self._proxy)
+        if not data or not data.get("code") or not data.get("privateKey"):
+            self.status_updated.emit("Error", "Failed to generate Quick Sign In code.")
+            return
+        self.code_created.emit(data)
+        code = data["code"]
+        private_key = data["privateKey"]
+        while self._running:
+            status_data = roblox.poll_quick_login_status(code, private_key, proxy=self._proxy)
+            status = status_data.get("status", "")
+            if status == "Validated":
+                cookie = roblox.complete_quick_login(code, private_key, proxy=self._proxy)
+                if cookie:
+                    self.success.emit(cookie)
+                    return
+                else:
+                    self.status_updated.emit("Error", "Failed to retrieve the session cookie.")
+                    return
+            elif status == "Cancelled":
+                self.status_updated.emit("Cancelled", "Login request cancelled.")
+                return
+            elif status == "UserLinked":
+                self.status_updated.emit("UserLinked", "Code entered. Confirm login on your other device.")
+            elif status == "Created":
+                self.status_updated.emit("Created", "Waiting for you to enter the code...")
+            time.sleep(3)
+
+    def stop(self) -> None:
+        self._running = False
+
 SWATCHES = [
     "#7C5CFF", "#4b6bff", "#3fb87f", "#f0a63f",
     "#f0566a", "#e05cc8", "#41c7d8", "#8b93a6",
@@ -62,6 +105,7 @@ class AccountDialog(QDialog):
         self._editing = account is not None
         self._account = account or Account(name="")
         self._worker: _IdentityWorker | None = None
+        self._quick_worker = None
 
         self.setWindowTitle("Edit account" if self._editing else "Add account")
         self.setModal(True)
@@ -79,6 +123,7 @@ class AccountDialog(QDialog):
         self._tabs.addTab(self._build_cookie_tab(), "Paste cookie")
         self._tabs.addTab(self._build_signin_tab(), "Sign in")
         self._tabs.addTab(self._build_credentials_tab(), "Username")
+        self._tabs.addTab(self._build_quick_signin_tab(), "Quick Sign In")
         root.addWidget(self._tabs)
 
         self._identity = QLabel("")
@@ -260,3 +305,77 @@ class AccountDialog(QDialog):
 
     def result_account(self) -> Account:
         return self._account
+
+    def _build_quick_signin_tab(self) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(14, 14, 14, 14)
+        layout.setSpacing(12)
+        info = QLabel(
+            "Log in from another authenticated device. Generate a 6-character code here, "
+            "then go to <b>roblox.com/quick-login</b> on your logged-in device and enter it."
+        )
+        info.setObjectName("DialogHint")
+        info.setWordWrap(True)
+        layout.addWidget(info)
+        self._quick_btn = QPushButton("Generate code")
+        self._quick_btn.setObjectName("Primary")
+        self._quick_btn.setCursor(Qt.PointingHandCursor)
+        self._quick_btn.clicked.connect(self._start_quick_login)
+        layout.addWidget(self._quick_btn, alignment=Qt.AlignLeft)
+        self._quick_code_label = QLabel("")
+        self._quick_code_label.setStyleSheet("font-size: 32px; font-weight: 800; color: #e5484d; letter-spacing: 4px;")
+        self._quick_code_label.setAlignment(Qt.AlignCenter)
+        self._quick_code_label.hide()
+        layout.addWidget(self._quick_code_label)
+        self._quick_status = QLabel("")
+        self._quick_status.setObjectName("Muted")
+        self._quick_status.setAlignment(Qt.AlignCenter)
+        self._quick_status.setWordWrap(True)
+        self._quick_status.hide()
+        layout.addWidget(self._quick_status)
+        layout.addStretch(1)
+        return widget
+
+    def _start_quick_login(self) -> None:
+        self._quick_btn.setEnabled(False)
+        self._quick_btn.setText("Generating...")
+        self._quick_status.setText("Connecting to Roblox...")
+        self._quick_status.show()
+        self._quick_worker = _QuickLoginWorker(self._proxy.text().strip(), self)
+        self._quick_worker.code_created.connect(self._on_quick_code)
+        self._quick_worker.status_updated.connect(self._on_quick_status)
+        self._quick_worker.success.connect(self._on_quick_success)
+        self._quick_worker.start()
+
+    def _on_quick_code(self, data: dict) -> None:
+        self._quick_btn.hide()
+        self._quick_code_label.setText(data["code"])
+        self._quick_code_label.show()
+        self._quick_status.setText("Waiting for you to enter code at roblox.com/quick-login...")
+
+    def _on_quick_status(self, status: str, msg: str) -> None:
+        self._quick_status.setText(msg)
+        if status == "Error" or status == "Cancelled":
+            self._quick_worker.stop()
+            self._quick_btn.show()
+            self._quick_btn.setEnabled(True)
+            self._quick_btn.setText("Generate code")
+            self._quick_code_label.hide()
+
+    def _on_quick_success(self, cookie: str) -> None:
+        self._quick_worker.stop()
+        self._quick_code_label.hide()
+        self._quick_status.setText("Login successful! Verifying account details...")
+        self._cookie.setPlainText(cookie)
+        self._verify(cookie)
+
+    def accept(self) -> None:
+        if hasattr(self, "_quick_worker") and self._quick_worker:
+            self._quick_worker.stop()
+        super().accept()
+
+    def reject(self) -> None:
+        if hasattr(self, "_quick_worker") and self._quick_worker:
+            self._quick_worker.stop()
+        super().reject()

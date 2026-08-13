@@ -85,6 +85,65 @@ class _UpdateWorker(QThread):
         self.done.emit(updater.check(self._url))
 
 
+class TitleBar(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("TitleBar")
+        self.setFixedHeight(36)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(14, 0, 8, 0)
+        layout.setSpacing(6)
+        self._title = QLabel("VYRE")
+        self._title.setStyleSheet("font-weight: 800; font-size: 11px; letter-spacing: 2px; color: #f2f2f3;")
+        layout.addWidget(self._title)
+        layout.addStretch(1)
+        self._min_btn = QPushButton("—")
+        self._min_btn.setObjectName("TitleMin")
+        self._min_btn.setFixedSize(28, 28)
+        self._min_btn.setCursor(Qt.PointingHandCursor)
+        self._min_btn.clicked.connect(self._minimize)
+        layout.addWidget(self._min_btn)
+        self._max_btn = QPushButton("❑")
+        self._max_btn.setObjectName("TitleMax")
+        self._max_btn.setFixedSize(28, 28)
+        self._max_btn.setCursor(Qt.PointingHandCursor)
+        self._max_btn.clicked.connect(self._maximize)
+        layout.addWidget(self._max_btn)
+        self._close_btn = QPushButton("✕")
+        self._close_btn.setObjectName("TitleClose")
+        self._close_btn.setFixedSize(28, 28)
+        self._close_btn.setCursor(Qt.PointingHandCursor)
+        self._close_btn.clicked.connect(self._close)
+        layout.addWidget(self._close_btn)
+        self._drag_position = None
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._drag_position = event.globalPosition().toPoint() - self.window().frameGeometry().topLeft()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton and self._drag_position is not None:
+            self.window().move(event.globalPosition().toPoint() - self._drag_position)
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        self._drag_position = None
+
+    def _minimize(self, checked: bool = False):
+        self.window().showMinimized()
+
+    def _maximize(self, checked: bool = False):
+        w = self.window()
+        if w.isMaximized():
+            w.showNormal()
+        else:
+            w.showMaximized()
+
+    def _close(self, checked: bool = False):
+        self.window().close()
+
+
 class MainWindow(QWidget):
     def __init__(self, vault: Vault, config: Config, icon: QIcon, parent=None):
         super().__init__(parent)
@@ -101,10 +160,20 @@ class MainWindow(QWidget):
         self.setWindowTitle("Vyre — Roblox Alt Account Manager")
         self.setWindowIcon(icon)
         self.setMinimumSize(820, 560)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
 
-        layout = QHBoxLayout(self)
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
+
+        self._titlebar = TitleBar(self)
+        root_layout.addWidget(self._titlebar)
+
+        content = QWidget()
+        layout = QHBoxLayout(content)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+        root_layout.addWidget(content, 1)
 
         self._sidebar = Sidebar()
         self._wire_sidebar()

@@ -183,8 +183,8 @@ class LaunchDialog(QDialog):
         place_id = launcher.parse_place_id(self._place.text())
         job_id = self._job.text().strip()
         private = self._private.text().strip()
-        access_code = launcher.parse_access_code(private) if private else ""
-        self._launch(place_id, job_id, access_code, "", self._launch_btn)
+        access_code, link_code = launcher.parse_private_server(private) if private else ("", "")
+        self._launch(place_id, job_id, access_code, link_code, self._launch_btn)
 
     def _load_servers(self) -> None:
         place_id = launcher.parse_place_id(self._server_place.text())

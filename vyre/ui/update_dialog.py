@@ -84,7 +84,7 @@ class UpdateDialog(QDialog):
 
         self._check()
 
-    def _check(self) -> None:
+    def _check(self, checked: bool = False) -> None:
         if not self._url:
             self._status.setText("No update source set")
             self._status.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {PALETTE['text_dim']};")
@@ -120,10 +120,10 @@ class UpdateDialog(QDialog):
         self._download = info.get("url", "")
         self._get.setVisible(bool(self._download))
 
-    def _show_changelog(self) -> None:
+    def _show_changelog(self, checked: bool = False) -> None:
         self._notes.setPlainText(changelog.TEXT)
         self._notes.show()
 
-    def _open_download(self) -> None:
+    def _open_download(self, checked: bool = False) -> None:
         if self._download:
             QDesktopServices.openUrl(QUrl(self._download))

@@ -315,7 +315,7 @@ class SettingsDialog(QDialog):
         layout.addStretch(1)
         return widget
 
-    def _save_then_check_updates(self) -> None:
+    def _save_then_check_updates(self, checked: bool = False) -> None:
         self._config.set("check_updates", self._check_updates.isChecked())
         self._config.save()
         self.check_updates_requested.emit()

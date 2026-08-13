@@ -22,6 +22,7 @@ def main() -> None:
         "--enable-plugin=pyside6",
         "--include-module=vyre.theme",
         "--include-module=vyre.ui.widgets",
+        "--include-data-dir=vyre/assets=vyre/assets",
         "--windows-console-mode=disable",
         f"--windows-icon-from-ico={ICON}",
         "--company-name=Kyrro",
