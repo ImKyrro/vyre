@@ -3,6 +3,13 @@
 A clean, professional Roblox alt account manager for Windows — Onyx/Crimson UI,
 encrypted vault, embedded Chromium, live presence, and one-click game launching.
 
+![Vyre](docs/screenshots/main.png)
+
+<p align="center">
+  <img src="docs/screenshots/settings.png" width="45%">
+  <img src="docs/screenshots/tools.png" width="45%">
+</p>
+
 ## Features
 
 **Accounts**

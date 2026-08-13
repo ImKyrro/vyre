@@ -14,8 +14,12 @@ Vyre.dist/
 Vyre.onefile-build/
 
 vault.dat
+vault-*.dat
+*.locked-*
 config.json
+profiles.json
 profiles/
+*.vyre
 *.log
 
 .vscode/
