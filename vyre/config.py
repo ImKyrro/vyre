@@ -20,6 +20,7 @@ _DEFAULTS = {
     "check_updates": True,
     "hide_info": False,
     "hide_images": False,
+    "spoof_hwid": False,
 }
 
 

@@ -79,7 +79,33 @@ def _client_uri(ticket: str, launcher_url: str) -> str:
     return "+".join(parts)
 
 
+def spoof_roblox_hwid() -> None:
+    try:
+        import uuid
+        import winreg
+        new_guid = f"{{{uuid.uuid4()}}}"
+        clean_guid = str(uuid.uuid4())
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Roblox\Common\RbxCrash") as key:
+            winreg.SetValueEx(key, "CrashGUID", 0, winreg.REG_SZ, new_guid)
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\RobloxSpaceGroup") as key:
+            winreg.SetValueEx(key, "HardwareID", 0, winreg.REG_SZ, clean_guid)
+            winreg.SetValueEx(key, "DeviceID", 0, winreg.REG_SZ, clean_guid)
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography", 0, winreg.KEY_SET_VALUE) as key:
+                winreg.SetValueEx(key, "MachineGuid", 0, winreg.REG_SZ, clean_guid)
+        except OSError:
+            pass
+    except (ImportError, OSError):
+        pass
+
+
 def _open(uri: str) -> bool:
+    try:
+        from .config import Config
+        if Config.load().get("spoof_hwid"):
+            spoof_roblox_hwid()
+    except Exception:
+        pass
     try:
         os.startfile(uri)
         return True

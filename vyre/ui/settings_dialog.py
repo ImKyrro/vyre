@@ -105,6 +105,10 @@ class SettingsDialog(QDialog):
         self._hide_info.setChecked(self._config.get("hide_info"))
         layout.addWidget(self._hide_info)
 
+        self._spoof_hwid = QCheckBox("Enable Hardware ID (HWID) spoofing for Roblox")
+        self._spoof_hwid.setChecked(self._config.get("spoof_hwid"))
+        layout.addWidget(self._spoof_hwid)
+
         layout.addSpacing(6)
         layout.addWidget(self._label("Presence"))
         self._presence_auto = QCheckBox("Automatically refresh presence")
@@ -393,6 +397,7 @@ class SettingsDialog(QDialog):
             "check_updates": self._check_updates.isChecked(),
             "hide_images": self._hide_images.isChecked(),
             "hide_info": self._hide_info.isChecked(),
+            "spoof_hwid": self._spoof_hwid.isChecked(),
         })
         self._config.save()
         system.set_autostart(self._autostart.isChecked())

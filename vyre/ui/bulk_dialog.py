@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 from .. import generator, roblox
 from ..models import Account
 from ..theme import PALETTE
-from .login_capture import LoginCaptureDialog
+from .login_capture import LoginCaptureDialog, SignupCaptureDialog
 
 
 class _BulkCookieWorker(QThread):
@@ -223,8 +223,9 @@ class BulkImportDialog(QDialog):
         copy.clicked.connect(lambda: QGuiApplication.clipboard().setText(self._gen_box.toPlainText()))
         save = QPushButton("Save as drafts")
         save.clicked.connect(self._save_drafts)
-        signup = QPushButton("Open Roblox signup")
-        signup.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(generator.SIGNUP_URL)))
+        signup = QPushButton("Start signup queue")
+        signup.setObjectName("Primary")
+        signup.clicked.connect(self._signup_queue)
         buttons.addWidget(copy)
         buttons.addWidget(save)
         buttons.addWidget(signup)
@@ -256,6 +257,40 @@ class BulkImportDialog(QDialog):
             added += 1
         self._status.setStyleSheet(f"color: {PALETTE['success']}; font-size: 12px;")
         self._status.setText(f"Saved {added} draft(s). Create them on Roblox, then Edit to add the cookie.")
+
+    def _signup_queue(self) -> None:
+        pairs = []
+        for line in self._gen_box.toPlainText().splitlines():
+            line = line.strip()
+            if not line or ":" not in line:
+                continue
+            user, _, password = line.partition(":")
+            user, password = user.strip(), password.strip()
+            if user and password:
+                pairs.append((user, password))
+        if not pairs:
+            self._status.setStyleSheet(f"color: {PALETTE['danger']}; font-size: 12px;")
+            self._status.setText("No valid username:password lines found.")
+            return
+        added = 0
+        for index, (user, password) in enumerate(pairs, start=1):
+            self._status.setStyleSheet(f"color: {PALETTE['text_dim']}; font-size: 12px;")
+            self._status.setText(f"Signing up {index} of {len(pairs)}: {user}")
+            dialog = SignupCaptureDialog(user, password, self)
+            if dialog.exec() == QDialog.Accepted and dialog.cookie:
+                identity = roblox.fetch_identity(dialog.cookie)
+                username = identity.get("username", user)
+                self.accounts.append(
+                    Account(
+                        name=username,
+                        cookie=dialog.cookie,
+                        username=username,
+                        user_id=identity.get("user_id", ""),
+                    )
+                )
+                added += 1
+        self._status.setStyleSheet(f"color: {PALETTE['success']}; font-size: 12px;")
+        self._status.setText(f"Created and imported {added} of {len(pairs)} account(s). Click Close to finish.")
 
     def _finish(self) -> None:
         if self.accounts:
