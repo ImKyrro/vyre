@@ -148,7 +148,7 @@ class UnlockDialog(QDialog):
         self._error.setText(message)
         self._error.setVisible(True)
 
-    def _submit(self) -> None:
+    def _submit(self, checked: bool = False) -> None:
         password = self._password.text()
         path = self._current["path"]
         if not password:

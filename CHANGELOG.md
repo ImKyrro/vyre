@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3
+
+- Fixed missing QPushButton NameError import crash on MainWindow TitleBar buttons
+- Fixed positional clicked signal parameter mismatch on UnlockDialog submit
+
 ## 1.1.2
 
 - Added Quick Sign In method to bypass captcha and bot detection entirely

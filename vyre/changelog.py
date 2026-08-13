@@ -1,4 +1,8 @@
-TEXT = """Vyre 1.1.2
+TEXT = """Vyre 1.1.3
+- Fixed missing QPushButton NameError import crash on MainWindow TitleBar buttons
+- Fixed positional clicked signal parameter mismatch on UnlockDialog submit
+
+Vyre 1.1.2
 - Added Quick Sign In method to bypass captcha and bot detection entirely
 - Implemented custom title bar (frameless window mode) with minimize, maximize, and close controls
 - Added download speed and progress reporting to installer, with automatic old version cleanup
