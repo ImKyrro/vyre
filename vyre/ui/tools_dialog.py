@@ -6,11 +6,12 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
-from .. import multi_instance, wintools
+from .. import fflags, multi_instance, wintools
 from ..config import Config
 from ..theme import PALETTE
 from . import icons
@@ -75,6 +76,32 @@ class ToolsDialog(QDialog):
         hint.setWordWrap(True)
         root.addWidget(hint)
 
+        root.addWidget(self._label("Performance mode (less lag with many accounts)"))
+        perf_row = QHBoxLayout()
+        perf_row.addWidget(QLabel("FPS cap"))
+        self._fps = QSpinBox()
+        self._fps.setRange(5, 240)
+        self._fps.setValue(30)
+        perf_row.addWidget(self._fps)
+        apply_perf = QPushButton("  Apply")
+        apply_perf.setIcon(icons.icon("rocket", PALETTE["text_dim"], 15))
+        apply_perf.setCursor(Qt.PointingHandCursor)
+        apply_perf.clicked.connect(self._apply_perf)
+        perf_row.addWidget(apply_perf)
+        restore_perf = QPushButton("  Restore")
+        restore_perf.setIcon(icons.icon("refresh", PALETTE["text_dim"], 15))
+        restore_perf.setCursor(Qt.PointingHandCursor)
+        restore_perf.clicked.connect(self._restore_perf)
+        perf_row.addWidget(restore_perf)
+        perf_row.addStretch(1)
+        root.addLayout(perf_row)
+
+        self._perf_status = QLabel("")
+        self._perf_status.setObjectName("Faint")
+        self._perf_status.setWordWrap(True)
+        root.addWidget(self._perf_status)
+        self._refresh_perf_status()
+
         self._status = QLabel("")
         self._status.setObjectName("StatusText")
         root.addWidget(self._status)
@@ -125,3 +152,25 @@ class ToolsDialog(QDialog):
         self._status.setStyleSheet(f"color: {PALETTE['text_dim']}; font-size: 12px;")
         self._status.setText(f"{verb} {affected} window(s).")
         self._refresh_count()
+
+    def _apply_perf(self) -> None:
+        if not fflags.is_installed():
+            self._perf_status.setText("Roblox install not found.")
+            return
+        count = fflags.apply(self._fps.value())
+        self._perf_status.setText(
+            f"Applied to {count} Roblox version(s). Restart Roblox clients to take effect. "
+            "Some flags may be ignored by Roblox."
+        )
+
+    def _restore_perf(self) -> None:
+        count = fflags.restore()
+        self._perf_status.setText(f"Restored defaults for {count} Roblox version(s).")
+
+    def _refresh_perf_status(self) -> None:
+        if not fflags.is_installed():
+            self._perf_status.setText("Roblox install not found.")
+        elif fflags.is_applied():
+            self._perf_status.setText("Performance mode is currently ON.")
+        else:
+            self._perf_status.setText("Performance mode is off.")

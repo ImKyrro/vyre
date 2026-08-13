@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
@@ -33,6 +34,7 @@ class AccountCard(QWidget):
         self.account_id = account.id
         self._favorite = account.favorite
         self._username = account.username
+        self._uid = account.user_id
         self._active = False
         self._expired = False
         self.setFixedHeight(62)
@@ -91,6 +93,7 @@ class AccountCard(QWidget):
     def update_account(self, account: Account) -> None:
         self._favorite = account.favorite
         self._username = account.username
+        self._uid = account.user_id
         self._avatar.update_data(account.initials(), account.color)
         if account.user_id:
             self._avatar.set_image_url(self._headshot(account.user_id))
@@ -140,6 +143,10 @@ class AccountCard(QWidget):
     def name_text(self) -> str:
         return self._name.text()
 
+    def _copy_uid(self) -> None:
+        if self._uid:
+            QGuiApplication.clipboard().setText(self._uid)
+
     def is_checked(self) -> bool:
         return self._check.isChecked()
 
@@ -157,6 +164,7 @@ class AccountCard(QWidget):
         menu.addAction(icons.icon("edit", dim), "Edit", lambda: self.edit_requested.emit(self.account_id))
         menu.addAction(icons.icon("copy", dim), "Duplicate", lambda: self.duplicate_requested.emit(self.account_id))
         menu.addAction(icons.icon("copy", dim), "Copy cookie", lambda: self.copy_requested.emit(self.account_id))
+        menu.addAction(icons.icon("user", dim), "Copy user ID", self._copy_uid)
         menu.addSeparator()
         menu.addAction(icons.icon("back", dim), "Move up", lambda: self.move_requested.emit(self.account_id, -1))
         menu.addAction(icons.icon("forward", dim), "Move down", lambda: self.move_requested.emit(self.account_id, 1))
