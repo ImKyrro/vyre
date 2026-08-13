@@ -13,6 +13,7 @@ PALETTE = {
     "accent_press": "#cf3b40",
     "accent_soft": "#2a1416",
     "online": "#3fb950",
+    "success": "#3fb950",
     "studio": "#d29922",
     "offline": "#5f5f68",
     "danger": "#ff6b6b",

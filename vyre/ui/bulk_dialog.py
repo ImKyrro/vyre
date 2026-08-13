@@ -1,16 +1,18 @@
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import Qt, QThread, QUrl, Signal
+from PySide6.QtGui import QDesktopServices, QGuiApplication
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
     QPlainTextEdit,
     QPushButton,
+    QSpinBox,
     QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
-from .. import roblox
+from .. import generator, roblox
 from ..models import Account
 from ..theme import PALETTE
 from .login_capture import LoginCaptureDialog
@@ -55,6 +57,7 @@ class BulkImportDialog(QDialog):
         self._tabs = QTabWidget()
         self._tabs.addTab(self._build_cookie_tab(), "Cookies")
         self._tabs.addTab(self._build_cred_tab(), "Credentials")
+        self._tabs.addTab(self._build_generate_tab(), "Generate")
         root.addWidget(self._tabs)
 
         self._status = QLabel("")
@@ -181,6 +184,78 @@ class BulkImportDialog(QDialog):
                 added += 1
         self._status.setStyleSheet(f"color: {PALETTE['success']}; font-size: 12px;")
         self._status.setText(f"Captured {added} of {len(pairs)} account(s). Click Close to finish.")
+
+    def _build_generate_tab(self) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(14, 14, 14, 14)
+        layout.setSpacing(10)
+
+        hint = QLabel(
+            "Generate strong usernames and passwords, then create each account yourself on "
+            "Roblox's signup page (you choose the birthday and solve the captcha). Saved drafts "
+            "appear in your list — sign in later and use Edit to capture the cookie."
+        )
+        hint.setObjectName("DialogHint")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+
+        row = QHBoxLayout()
+        row.addWidget(QLabel("How many"))
+        self._gen_count = QSpinBox()
+        self._gen_count.setRange(1, 50)
+        self._gen_count.setValue(5)
+        row.addWidget(self._gen_count)
+        gen = QPushButton("Generate")
+        gen.setObjectName("Primary")
+        gen.clicked.connect(self._generate)
+        row.addWidget(gen)
+        row.addStretch(1)
+        layout.addLayout(row)
+
+        self._gen_box = QPlainTextEdit()
+        self._gen_box.setPlaceholderText("Generated username:password lines appear here")
+        self._gen_box.setFixedHeight(150)
+        layout.addWidget(self._gen_box)
+
+        buttons = QHBoxLayout()
+        copy = QPushButton("Copy all")
+        copy.clicked.connect(lambda: QGuiApplication.clipboard().setText(self._gen_box.toPlainText()))
+        save = QPushButton("Save as drafts")
+        save.clicked.connect(self._save_drafts)
+        signup = QPushButton("Open Roblox signup")
+        signup.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(generator.SIGNUP_URL)))
+        buttons.addWidget(copy)
+        buttons.addWidget(save)
+        buttons.addWidget(signup)
+        buttons.addStretch(1)
+        layout.addLayout(buttons)
+        return widget
+
+    def _generate(self) -> None:
+        pairs = generator.generate_pairs(self._gen_count.value())
+        self._gen_box.setPlainText("\n".join(f"{u}:{p}" for u, p in pairs))
+
+    def _save_drafts(self) -> None:
+        added = 0
+        for line in self._gen_box.toPlainText().splitlines():
+            line = line.strip()
+            if not line or ":" not in line:
+                continue
+            user, _, password = line.partition(":")
+            user, password = user.strip(), password.strip()
+            if not user:
+                continue
+            self.accounts.append(
+                Account(
+                    name=user,
+                    username=user,
+                    note=f"Draft account\nUsername: {user}\nPassword: {password}",
+                )
+            )
+            added += 1
+        self._status.setStyleSheet(f"color: {PALETTE['success']}; font-size: 12px;")
+        self._status.setText(f"Saved {added} draft(s). Create them on Roblox, then Edit to add the cookie.")
 
     def _finish(self) -> None:
         if self.accounts:
