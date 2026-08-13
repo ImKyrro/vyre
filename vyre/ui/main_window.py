@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from PySide6.QtHttpServer import QHttpServer, QHttpServerRequest, QHttpServerResponse
+from PySide6.QtNetwork import QTcpServer
 
 from .. import multi_instance, roblox, updater
 from ..config import Config
@@ -135,6 +137,12 @@ class MainWindow(QWidget):
         QTimer.singleShot(1200, self._refresh_presence)
         if self._config.get("check_updates"):
             QTimer.singleShot(2500, self._auto_check_updates)
+
+        self._server = QHttpServer(self)
+        self._tcp_server = QTcpServer(self)
+        if self._tcp_server.listen(port=59124):
+            self._server.bind(self._tcp_server)
+            self._server.route("/add_account", self._api_add_account)
 
     def _wire_sidebar(self) -> None:
         s = self._sidebar
@@ -487,6 +495,28 @@ class MainWindow(QWidget):
 
         self._toast.show_message(f"Update available — v{info['version']}")
         UpdateDialog(updater.UPDATE_URL, self).exec()
+
+    def _api_add_account(self, request: QHttpServerRequest) -> QHttpServerResponse:
+        import json
+        if request.method() != QHttpServerRequest.Method.Post:
+            return QHttpServerResponse("Method Not Allowed", QHttpServerResponse.StatusCode.MethodNotAllowed)
+        try:
+            body = bytes(request.body()).decode("utf-8")
+            payload = json.loads(body)
+        except Exception:
+            return QHttpServerResponse("Invalid JSON Payload", QHttpServerResponse.StatusCode.BadRequest)
+        name = payload.get("name", "").strip()
+        cookie = payload.get("cookie", "").strip()
+        proxy = payload.get("proxy", "").strip()
+        color = payload.get("color", "#e5484d").strip()
+        if not name or not cookie:
+            return QHttpServerResponse("Missing name or cookie", QHttpServerResponse.StatusCode.BadRequest)
+        account = Account(name=name, cookie=cookie, proxy=proxy, color=color)
+        self._vault.add(account)
+        QTimer.singleShot(0, self._refresh)
+        QTimer.singleShot(100, self._backfill_identities)
+        QTimer.singleShot(500, lambda: self._toast.show_message(f"Added {name} via Extension"))
+        return QHttpServerResponse("Account added", QHttpServerResponse.StatusCode.Ok)
 
     def _check_health(self, account_id: str) -> None:
         account = self._account_or_warn(account_id)
