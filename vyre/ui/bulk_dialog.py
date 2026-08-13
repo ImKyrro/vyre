@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt, QThread, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QGuiApplication
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -192,9 +193,9 @@ class BulkImportDialog(QDialog):
         layout.setSpacing(10)
 
         hint = QLabel(
-            "Generate strong usernames and passwords, then create each account yourself on "
-            "Roblox's signup page (you choose the birthday and solve the captcha). Saved drafts "
-            "appear in your list — sign in later and use Edit to capture the cookie."
+            "Generate credentials and automate account creation. The browser will prefill "
+            "details (18+ age, selected gender, and credentials) and submit automatically. "
+            "Simply solve any captcha if prompted."
         )
         hint.setObjectName("DialogHint")
         hint.setWordWrap(True)
@@ -206,6 +207,10 @@ class BulkImportDialog(QDialog):
         self._gen_count.setRange(1, 50)
         self._gen_count.setValue(5)
         row.addWidget(self._gen_count)
+        row.addWidget(QLabel("Gender"))
+        self._gen_gender = QComboBox()
+        self._gen_gender.addItems(["Random", "Male", "Female"])
+        row.addWidget(self._gen_gender)
         gen = QPushButton("Generate")
         gen.setObjectName("Primary")
         gen.clicked.connect(self._generate)
@@ -272,11 +277,12 @@ class BulkImportDialog(QDialog):
             self._status.setStyleSheet(f"color: {PALETTE['danger']}; font-size: 12px;")
             self._status.setText("No valid username:password lines found.")
             return
+        gender_opt = self._gen_gender.currentText()
         added = 0
         for index, (user, password) in enumerate(pairs, start=1):
             self._status.setStyleSheet(f"color: {PALETTE['text_dim']}; font-size: 12px;")
             self._status.setText(f"Signing up {index} of {len(pairs)}: {user}")
-            dialog = SignupCaptureDialog(user, password, self)
+            dialog = SignupCaptureDialog(user, password, gender_opt, self)
             if dialog.exec() == QDialog.Accepted and dialog.cookie:
                 identity = roblox.fetch_identity(dialog.cookie)
                 username = identity.get("username", user)

@@ -19,9 +19,9 @@ def is_newer(remote: str, local: str = __version__) -> bool:
     return _parse(remote) > _parse(local)
 
 
-def check(url: str, timeout: float = 8.0) -> dict:
+def check(url: str, timeout: float = 8.0) -> dict | None:
     if not url:
-        return {}
+        return None
     request = urllib.request.Request(
         url,
         headers={"User-Agent": "Vyre-Updater", "Accept": "application/json"},
@@ -30,7 +30,7 @@ def check(url: str, timeout: float = 8.0) -> dict:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             data = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, ValueError, OSError):
-        return {}
+        return None
 
     if isinstance(data, dict) and "tag_name" in data:
         remote = data.get("tag_name", "")

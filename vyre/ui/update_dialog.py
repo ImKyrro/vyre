@@ -98,8 +98,14 @@ class UpdateDialog(QDialog):
         self._worker.done.connect(self._on_result)
         self._worker.start()
 
-    def _on_result(self, info: dict) -> None:
+    def _on_result(self, info: dict | None) -> None:
         self._recheck.setEnabled(True)
+        if info is None:
+            self._status.setText("Failed to check for updates")
+            self._status.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {PALETTE['danger']};")
+            self._notes.hide()
+            self._get.hide()
+            return
         if not info:
             self._status.setText("You're up to date")
             self._status.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {PALETTE['online']};")
