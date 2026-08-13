@@ -23,6 +23,7 @@ class Sidebar(QWidget):
     bulk_requested = Signal()
     settings_requested = Signal()
     refresh_requested = Signal()
+    update_triggered = Signal()
     support_requested = Signal()
     tools_requested = Signal()
     mass_launch_requested = Signal()
@@ -65,11 +66,18 @@ class Sidebar(QWidget):
         brand.addWidget(tag)
         header.addLayout(brand)
         header.addStretch(1)
+        self._update_btn = QToolButton()
+        self._update_btn.setIcon(icons.icon("download", PALETTE["accent"], 18))
+        self._update_btn.setToolTip("Update available!")
+        self._update_btn.setCursor(Qt.PointingHandCursor)
+        self._update_btn.clicked.connect(self.update_triggered.emit)
+        self._update_btn.hide()
+        header.addWidget(self._update_btn, 0, Qt.AlignTop)
         self._settings = QToolButton()
         self._settings.setIcon(icons.icon("settings", PALETTE["text_dim"], 19))
         self._settings.setToolTip("Settings")
-        self._settings.setCursor(Qt.PointingHandCursor)
         self._settings.clicked.connect(self.settings_requested.emit)
+        self._settings.setCursor(Qt.PointingHandCursor)
         header.addWidget(self._settings, 0, Qt.AlignTop)
         root.addLayout(header)
 
@@ -295,3 +303,6 @@ class Sidebar(QWidget):
                 self._cards[card_id].update_presence(
                     info["kind"], info["label"], info["location"]
                 )
+
+    def show_update(self, visible: bool) -> None:
+        self._update_btn.setVisible(visible)

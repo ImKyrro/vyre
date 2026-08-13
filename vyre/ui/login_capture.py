@@ -194,9 +194,17 @@ class SignupCaptureDialog(QDialog):
                         }}
                         elem.dispatchEvent(new Event('input', {{ bubbles: true }}));
                     }}
-                    setSelect(mSelect, ["1", "01", "Jan", "January"]);
-                    setSelect(dSelect, ["1", "01"]);
-                    setSelect(ySelect, ["2005", "2004", "2003", "2002", "2001", "2000", "1999", "1998"]);
+                    var months = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+                    var days = [];
+                    for (var d = 1; d <= 28; d++) days.push(d.toString());
+                    var years = [];
+                    for (var y = 1985; y <= 2005; y++) years.push(y.toString());
+                    var randMonth = months[Math.floor(Math.random() * months.length)];
+                    var randDay = days[Math.floor(Math.random() * days.length)];
+                    var randYear = years[Math.floor(Math.random() * years.length)];
+                    setSelect(mSelect, [randMonth]);
+                    setSelect(dSelect, [randDay]);
+                    setSelect(ySelect, [randYear]);
                     setInput(uInput, {user});
                     setInput(pInput, {pwd});
                     if (maleBtn && femaleBtn) {{

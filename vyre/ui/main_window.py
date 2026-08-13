@@ -141,6 +141,7 @@ class MainWindow(QWidget):
         s.add_requested.connect(self._add_account)
         s.bulk_requested.connect(self._bulk_import)
         s.settings_requested.connect(self._open_settings)
+        s.update_triggered.connect(self._open_updates)
         s.refresh_requested.connect(self._refresh_presence)
         s.support_requested.connect(self._open_support)
         s.tools_requested.connect(self._open_tools)
@@ -479,7 +480,9 @@ class MainWindow(QWidget):
 
     def _on_update(self, info: dict) -> None:
         if not info:
+            self._sidebar.show_update(False)
             return
+        self._sidebar.show_update(True)
         from .update_dialog import UpdateDialog
 
         self._toast.show_message(f"Update available — v{info['version']}")
