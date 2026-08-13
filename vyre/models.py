@@ -19,6 +19,7 @@ class Account:
     display_name: str = ""
     user_id: str = ""
     note: str = ""
+    proxy: str = ""
     color: str = "#e5484d"
     favorite: bool = False
     id: str = field(default_factory=_new_id)
@@ -44,7 +45,7 @@ class Account:
     def from_dict(cls, data: dict) -> "Account":
         fields = {
             "name", "cookie", "username", "display_name", "user_id",
-            "note", "color", "favorite", "id", "created_at", "last_used",
+            "note", "proxy", "color", "favorite", "id", "created_at", "last_used",
         }
         clean = {key: value for key, value in data.items() if key in fields}
         return cls(**clean)

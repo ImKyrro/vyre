@@ -31,21 +31,38 @@ def is_valid_cookie(raw: str) -> bool:
     return _WARNING in value and len(value) > 200
 
 
-def _open(request: urllib.request.Request, timeout: float):
+def normalize_proxy(proxy: str) -> str:
+    value = (proxy or "").strip()
+    if not value:
+        return ""
+    if "://" not in value:
+        value = "http://" + value
+    return value
+
+
+def _opener(proxy: str):
+    proxy = normalize_proxy(proxy)
+    if not proxy:
+        return urllib.request.urlopen
+    handler = urllib.request.ProxyHandler({"http": proxy, "https": proxy})
+    return urllib.request.build_opener(handler).open
+
+
+def _open(request: urllib.request.Request, timeout: float, proxy: str = ""):
     try:
-        response = urllib.request.urlopen(request, timeout=timeout)
+        response = _opener(proxy)(request, timeout=timeout)
         return response.status, response.headers, response.read()
     except urllib.error.HTTPError as error:
         return error.code, error.headers, error.read()
-    except (urllib.error.URLError, TimeoutError, OSError):
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
         return 0, {}, b""
 
 
-def _get(url: str, cookie: str = "", timeout: float = 12.0) -> dict:
+def _get(url: str, cookie: str = "", timeout: float = 12.0, proxy: str = "") -> dict:
     headers = {"User-Agent": _UA, "Accept": "application/json"}
     if cookie:
         headers["Cookie"] = f"{COOKIE_NAME}={normalize_cookie(cookie)}"
-    status, _, body = _open(urllib.request.Request(url, headers=headers), timeout)
+    status, _, body = _open(urllib.request.Request(url, headers=headers), timeout, proxy)
     if status != 200:
         return {}
     try:
@@ -54,7 +71,7 @@ def _get(url: str, cookie: str = "", timeout: float = 12.0) -> dict:
         return {}
 
 
-def _post(url: str, cookie: str, payload: dict, timeout: float = 12.0, extra: dict | None = None) -> dict:
+def _post(url: str, cookie: str, payload: dict, timeout: float = 12.0, extra: dict | None = None, proxy: str = "") -> dict:
     data = json.dumps(payload).encode("utf-8")
     csrf = ""
     for _ in range(2):
@@ -70,7 +87,7 @@ def _post(url: str, cookie: str, payload: dict, timeout: float = 12.0, extra: di
         if extra:
             headers.update(extra)
         status, resp_headers, body = _open(
-            urllib.request.Request(url, data=data, headers=headers, method="POST"), timeout
+            urllib.request.Request(url, data=data, headers=headers, method="POST"), timeout, proxy
         )
         if status == 403 and resp_headers.get("x-csrf-token"):
             csrf = resp_headers.get("x-csrf-token")
@@ -84,14 +101,14 @@ def _post(url: str, cookie: str, payload: dict, timeout: float = 12.0, extra: di
     return {}
 
 
-def check_cookie(cookie: str, timeout: float = 12.0) -> bool:
+def check_cookie(cookie: str, timeout: float = 12.0, proxy: str = "") -> bool:
     if not is_valid_cookie(cookie):
         return False
-    return bool(fetch_identity(cookie, timeout).get("user_id"))
+    return bool(fetch_identity(cookie, timeout, proxy).get("user_id"))
 
 
-def fetch_identity(cookie: str, timeout: float = 12.0) -> dict:
-    data = _get(AUTH_API, cookie, timeout)
+def fetch_identity(cookie: str, timeout: float = 12.0, proxy: str = "") -> dict:
+    data = _get(AUTH_API, cookie, timeout, proxy)
     if not data:
         return {}
     return {
@@ -117,7 +134,7 @@ def fetch_headshots(user_ids: list[str], size: str = "150x150") -> dict:
     return result
 
 
-def fetch_presence(cookie: str, user_ids: list[str]) -> dict:
+def fetch_presence(cookie: str, user_ids: list[str], proxy: str = "") -> dict:
     ids = [int(i) for i in user_ids if str(i).isdigit()]
     if not ids:
         return {}
@@ -125,6 +142,7 @@ def fetch_presence(cookie: str, user_ids: list[str]) -> dict:
         "https://presence.roblox.com/v1/presence/users",
         cookie,
         {"userIds": ids},
+        proxy=proxy,
     )
     result = {}
     for item in data.get("userPresences", []):
@@ -180,12 +198,12 @@ def list_servers(place_id: str, cursor: str = "", limit: int = 100) -> dict:
     }
 
 
-def fetch_stats(user_id: str) -> dict:
+def fetch_stats(user_id: str, proxy: str = "") -> dict:
     if not str(user_id).isdigit():
         return {}
-    friends = _get(f"https://friends.roblox.com/v1/users/{user_id}/friends/count")
-    followers = _get(f"https://friends.roblox.com/v1/users/{user_id}/followers/count")
-    following = _get(f"https://friends.roblox.com/v1/users/{user_id}/followings/count")
+    friends = _get(f"https://friends.roblox.com/v1/users/{user_id}/friends/count", proxy=proxy)
+    followers = _get(f"https://friends.roblox.com/v1/users/{user_id}/followers/count", proxy=proxy)
+    following = _get(f"https://friends.roblox.com/v1/users/{user_id}/followings/count", proxy=proxy)
     return {
         "friends": friends.get("count", 0),
         "followers": followers.get("count", 0),
@@ -193,7 +211,7 @@ def fetch_stats(user_id: str) -> dict:
     }
 
 
-def get_auth_ticket(cookie: str, timeout: float = 12.0) -> str:
+def get_auth_ticket(cookie: str, timeout: float = 12.0, proxy: str = "") -> str:
     data = json.dumps({}).encode("utf-8")
     csrf = ""
     for _ in range(2):
@@ -215,6 +233,7 @@ def get_auth_ticket(cookie: str, timeout: float = 12.0) -> str:
                 method="POST",
             ),
             timeout,
+            proxy,
         )
         if status == 403 and resp_headers.get("x-csrf-token"):
             csrf = resp_headers.get("x-csrf-token")

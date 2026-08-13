@@ -25,12 +25,13 @@ SWATCHES = [
 class _IdentityWorker(QThread):
     done = Signal(dict)
 
-    def __init__(self, cookie: str, parent=None):
+    def __init__(self, cookie: str, proxy: str = "", parent=None):
         super().__init__(parent)
         self._cookie = cookie
+        self._proxy = proxy
 
     def run(self) -> None:
-        self.done.emit(roblox.fetch_identity(self._cookie))
+        self.done.emit(roblox.fetch_identity(self._cookie, proxy=self._proxy))
 
 
 class _Swatch(QPushButton):
@@ -107,6 +108,11 @@ class AccountDialog(QDialog):
         self._note = QLineEdit(self._account.note)
         self._note.setPlaceholderText("Anything you want to remember")
         root.addWidget(self._note)
+
+        root.addWidget(self._label("Proxy (optional) — host:port or user:pass@host:port"))
+        self._proxy = QLineEdit(self._account.proxy)
+        self._proxy.setPlaceholderText("e.g. 12.34.56.78:8080 or user:pass@host:port")
+        root.addWidget(self._proxy)
 
         self._error = QLabel("")
         self._error.setStyleSheet(f"color: {PALETTE['danger']}; font-size: 12px;")
@@ -220,7 +226,7 @@ class AccountDialog(QDialog):
             self._show_identity("That does not look like a valid cookie.", PALETTE["danger"])
             return
         self._show_identity("Checking session...", PALETTE["text_dim"])
-        self._worker = _IdentityWorker(cookie, self)
+        self._worker = _IdentityWorker(cookie, self._proxy.text().strip(), self)
         self._worker.done.connect(self._on_identity)
         self._worker.start()
 
@@ -249,6 +255,7 @@ class AccountDialog(QDialog):
         self._account.name = name
         self._account.cookie = cookie
         self._account.note = self._note.text().strip()
+        self._account.proxy = self._proxy.text().strip()
         self.accept()
 
     def result_account(self) -> Account:

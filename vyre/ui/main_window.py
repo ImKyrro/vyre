@@ -47,12 +47,12 @@ class _BackfillWorker(QThread):
 
     def __init__(self, accounts, parent=None):
         super().__init__(parent)
-        self._items = [(a.id, a.cookie) for a in accounts]
+        self._items = [(a.id, a.cookie, a.proxy) for a in accounts]
 
     def run(self) -> None:
         result = {}
-        for account_id, cookie in self._items:
-            identity = roblox.fetch_identity(cookie)
+        for account_id, cookie, proxy in self._items:
+            identity = roblox.fetch_identity(cookie, proxy=proxy)
             if identity.get("user_id"):
                 result[account_id] = identity
         self.done.emit(result)
@@ -63,12 +63,12 @@ class _HealthWorker(QThread):
 
     def __init__(self, accounts, parent=None):
         super().__init__(parent)
-        self._items = [(a.id, a.name, a.cookie) for a in accounts]
+        self._items = [(a.id, a.cookie, a.proxy) for a in accounts]
 
     def run(self) -> None:
         result = {}
-        for account_id, _, cookie in self._items:
-            result[account_id] = roblox.check_cookie(cookie)
+        for account_id, cookie, proxy in self._items:
+            result[account_id] = roblox.check_cookie(cookie, proxy=proxy)
         self.done.emit(result)
 
 
@@ -365,7 +365,7 @@ class MainWindow(QWidget):
             return
         from .. import launcher
 
-        ok, message = launcher.launch_as_account(account.cookie, place_id, job_id)
+        ok, message = launcher.launch_as_account(account.cookie, place_id, job_id, proxy=account.proxy)
         self._toast.show_message(message if ok else "Could not launch")
 
     def _view_web(self, account_id: str) -> None:

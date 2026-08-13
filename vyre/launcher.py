@@ -97,8 +97,9 @@ def launch_as_account(
     job_id: str = "",
     access_code: str = "",
     link_code: str = "",
+    proxy: str = "",
 ) -> tuple[bool, str]:
-    ticket = roblox.get_auth_ticket(cookie)
+    ticket = roblox.get_auth_ticket(cookie, proxy=proxy)
     if not ticket:
         if launch_deeplink(place_id, job_id, access_code, link_code):
             return True, "Launched with the Roblox app's current account (ticket unavailable)."
@@ -109,8 +110,8 @@ def launch_as_account(
     return False, "Could not start the Roblox client."
 
 
-def follow_user(cookie: str, user_id: str) -> tuple[bool, str]:
-    ticket = roblox.get_auth_ticket(cookie)
+def follow_user(cookie: str, user_id: str, proxy: str = "") -> tuple[bool, str]:
+    ticket = roblox.get_auth_ticket(cookie, proxy=proxy)
     if not ticket:
         if _open(f"roblox://experiences/start?userId={user_id}"):
             return True, "Launched with the Roblox app's current account (ticket unavailable)."

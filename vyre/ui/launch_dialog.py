@@ -35,9 +35,9 @@ class _ServerWorker(QThread):
 class _LaunchWorker(QThread):
     done = Signal(bool, str)
 
-    def __init__(self, cookie, place_id, job_id, access_code, link_code, parent=None):
+    def __init__(self, cookie, place_id, job_id, access_code, link_code, proxy, parent=None):
         super().__init__(parent)
-        self._args = (cookie, place_id, job_id, access_code, link_code)
+        self._args = (cookie, place_id, job_id, access_code, link_code, proxy)
 
     def run(self) -> None:
         ok, message = launcher.launch_as_account(*self._args)
@@ -168,7 +168,7 @@ class LaunchDialog(QDialog):
             return
         button.start_busy("Launching")
         self._launch_worker = _LaunchWorker(
-            self._account.cookie, place_id, job_id, access_code, link_code, self
+            self._account.cookie, place_id, job_id, access_code, link_code, self._account.proxy, self
         )
         self._launch_worker.done.connect(lambda ok, msg: self._on_launched(ok, msg, button))
         self._launch_worker.start()

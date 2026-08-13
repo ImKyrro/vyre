@@ -37,24 +37,25 @@ class _DetailWorker(QThread):
         self._id = account.id
         self._cookie = account.cookie
         self._user_id = account.user_id
+        self._proxy = account.proxy
 
     def run(self) -> None:
         first = {}
         if not self._user_id:
-            identity = roblox.fetch_identity(self._cookie)
+            identity = roblox.fetch_identity(self._cookie, proxy=self._proxy)
             if identity:
                 self._user_id = identity["user_id"]
                 first["identity"] = identity
         info = {}
         if self._user_id:
-            presence = roblox.fetch_presence(self._cookie, [self._user_id])
+            presence = roblox.fetch_presence(self._cookie, [self._user_id], self._proxy)
             info = presence.get(self._user_id, {"kind": "offline", "label": "Offline"})
             first["presence"] = info
         self.done.emit(self._id, first)
 
         if not self._user_id:
             return
-        extra = {"stats": roblox.fetch_stats(self._user_id)}
+        extra = {"stats": roblox.fetch_stats(self._user_id, self._proxy)}
         place = info.get("root_place_id") or info.get("place_id")
         if info.get("kind") == "ingame" and place:
             game = roblox.fetch_game_info(str(place))

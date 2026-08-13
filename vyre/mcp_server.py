@@ -64,7 +64,7 @@ def account_presence(account: str) -> dict:
         return {"error": f"No account matching '{account}'."}
     if not found.user_id:
         return {"error": "Account has no verified user id."}
-    presence = roblox.fetch_presence(found.cookie, [found.user_id])
+    presence = roblox.fetch_presence(found.cookie, [found.user_id], found.proxy)
     return presence.get(found.user_id, {"kind": "offline", "label": "Offline"})
 
 
@@ -96,7 +96,7 @@ def launch_game(account: str, place_id: str, job_id: str = "") -> dict:
     pid = launcher.parse_place_id(place_id)
     if not pid:
         return {"error": "Invalid place id."}
-    ok, message = launcher.launch_as_account(found.cookie, pid, job_id)
+    ok, message = launcher.launch_as_account(found.cookie, pid, job_id, proxy=found.proxy)
     return {"ok": ok, "message": message}
 
 
@@ -122,7 +122,7 @@ def check_cookie(account: str) -> dict:
     found = _find(account)
     if not found:
         return {"error": f"No account matching '{account}'."}
-    return {"valid": roblox.check_cookie(found.cookie)}
+    return {"valid": roblox.check_cookie(found.cookie, proxy=found.proxy)}
 
 
 @server.tool(description="Launch Roblox as a saved account and follow another user into their current game.")
@@ -133,7 +133,7 @@ def join_user(account: str, target: str) -> dict:
     user_id = roblox.resolve_username(target)
     if not user_id:
         return {"error": f"Could not resolve user '{target}'."}
-    ok, message = launcher.follow_user(found.cookie, user_id)
+    ok, message = launcher.follow_user(found.cookie, user_id, found.proxy)
     return {"ok": ok, "message": message}
 
 

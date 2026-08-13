@@ -39,10 +39,10 @@ class _MassWorker(QThread):
         for index, account in enumerate(self._accounts, start=1):
             self.progress.emit(index, total, account.name)
             if self._mode == "user":
-                ok, _ = launcher.follow_user(account.cookie, self._user_id)
+                ok, _ = launcher.follow_user(account.cookie, self._user_id, account.proxy)
             else:
                 ok, _ = launcher.launch_as_account(
-                    account.cookie, self._place_id, self._job_id
+                    account.cookie, self._place_id, self._job_id, proxy=account.proxy
                 )
             if ok:
                 launched += 1
