@@ -1,4 +1,5 @@
 import importlib
+import os
 import subprocess
 import sys
 
@@ -39,7 +40,15 @@ def _install(specs: list, on_message=None) -> bool:
         return False
 
 
+def _is_frozen() -> bool:
+    if getattr(sys, "frozen", False) or "__compiled__" in globals():
+        return True
+    return not os.path.basename(sys.executable).lower().startswith("python")
+
+
 def ensure(on_message=None) -> bool:
+    if _is_frozen():
+        return True
     missing = _missing()
     if not missing:
         return True
