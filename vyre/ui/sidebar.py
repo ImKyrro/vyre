@@ -310,7 +310,9 @@ class Sidebar(QWidget):
     def paintEvent(self, event):
         from PySide6.QtGui import QPainter
         from PySide6.QtWidgets import QStyle, QStyleOption
-        opt = QStyleOption()
-        opt.initFrom(self)
-        p = QPainter(self)
-        self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)
+        p = QPainter()
+        if p.begin(self):
+            opt = QStyleOption()
+            opt.initFrom(self)
+            self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)
+            p.end()

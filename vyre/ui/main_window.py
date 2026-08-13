@@ -124,6 +124,13 @@ class TitleBar(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(14, 0, 8, 0)
         layout.setSpacing(6)
+        import os
+        from PySide6.QtGui import QPixmap
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        logo_path = os.path.join(base_dir, "assets", "icon.png")
+        self._logo = QLabel()
+        self._logo.setPixmap(QPixmap(logo_path).scaled(14, 14, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        layout.addWidget(self._logo)
         self._title = QLabel("VYRE")
         self._title.setStyleSheet("font-weight: 800; font-size: 11px; letter-spacing: 2px; color: #f2f2f3;")
         layout.addWidget(self._title)
@@ -244,10 +251,12 @@ class TitleBar(QWidget):
     def paintEvent(self, event):
         from PySide6.QtGui import QPainter
         from PySide6.QtWidgets import QStyle, QStyleOption
-        opt = QStyleOption()
-        opt.initFrom(self)
-        p = QPainter(self)
-        self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)
+        p = QPainter()
+        if p.begin(self):
+            opt = QStyleOption()
+            opt.initFrom(self)
+            self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)
+            p.end()
 
 
 class MainWindow(QWidget):
@@ -761,10 +770,14 @@ class MainWindow(QWidget):
             place_id = launcher.parse_place_id(private_link)
         if not place_id:
             return self._cors_response("Missing place_id", QHttpServerResponse.StatusCode.BadRequest)
-        QTimer.singleShot(0, self, lambda: launcher.launch_as_account(
-            account.cookie, place_id, access_code=access_code, link_code=link_code, proxy=account.proxy
-        ))
-        QTimer.singleShot(100, self, lambda: self._toast.show_message(f"Launching game via Extension"))
+        import threading
+        threading.Thread(
+            target=launcher.launch_as_account,
+            args=(account.cookie, place_id),
+            kwargs={"access_code": access_code, "link_code": link_code, "proxy": account.proxy},
+            daemon=True
+        ).start()
+        QTimer.singleShot(10, self, lambda: self._toast.show_message("Launching game via Extension"))
         return self._cors_response("Launch initiated", QHttpServerResponse.StatusCode.Ok)
 
     def _check_health(self, account_id: str) -> None:
@@ -855,7 +868,9 @@ class MainWindow(QWidget):
     def paintEvent(self, event):
         from PySide6.QtGui import QPainter
         from PySide6.QtWidgets import QStyle, QStyleOption
-        opt = QStyleOption()
-        opt.initFrom(self)
-        p = QPainter(self)
-        self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)
+        p = QPainter()
+        if p.begin(self):
+            opt = QStyleOption()
+            opt.initFrom(self)
+            self.style().drawPrimitive(QStyle.PE_Widget, opt, p, self)
+            p.end()

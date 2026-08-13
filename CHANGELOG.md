@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.6
+
+- Implemented background threading for launching Roblox via local API to prevent blocking local QHttpServer and causing extension timeouts
+- Fixed console QPainter draw engine warnings by safely checking painter.begin() in paintEvents
+- Added application V logo icon in the frameless custom TitleBar next to the app name
+
 ## 1.1.5
 
 - Fixed QWidget background transparency issues in frameless window mode by adding paintEvent methods to custom widget subclasses

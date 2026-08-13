@@ -117,7 +117,9 @@ class Avatar(QWidget):
         self.update()
 
     def paintEvent(self, event) -> None:
-        painter = QPainter(self)
+        painter = QPainter()
+        if not painter.begin(self):
+            return
         painter.setRenderHint(QPainter.Antialiasing)
         d = self._diameter
         rect = QRectF(0, 0, d, d)
@@ -162,7 +164,9 @@ class StatusDot(QWidget):
         self.update()
 
     def paintEvent(self, event) -> None:
-        painter = QPainter(self)
+        painter = QPainter()
+        if not painter.begin(self):
+            return
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)
         painter.setBrush(QBrush(QColor(status_color(self._kind))))
