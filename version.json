@@ -1,5 +1,5 @@
 {
-  "version": "1.1.7",
-  "url": "https://github.com/ImKyrro/vyre/releases/download/v1.1.7/Vyre.exe",
-  "notes": "Vyre 1.1.7\n- Added support for saving multiple VIP servers with game icons per account\n- Fixed Chrome extension offline visual bug\n- Various UI improvements"
+  "version": "1.1.8",
+  "url": "https://github.com/ImKyrro/vyre/releases/download/v1.1.8/Vyre.exe",
+  "notes": "Vyre 1.1.8\n- Fixed crash when opening the quick-launch dialog due to missing VIP server variables"
 }

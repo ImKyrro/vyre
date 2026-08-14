@@ -739,9 +739,10 @@ class MainWindow(QWidget):
         proxy = payload.get("proxy", "").strip()
         color = payload.get("color", "#e5484d").strip()
         private_server_link = payload.get("private_server_link", "").strip()
+        private_servers = [{"name": "VIP Server 1", "link": private_server_link}] if private_server_link else []
         if not name or not cookie:
             return self._cors_response("Missing name or cookie", QHttpServerResponse.StatusCode.BadRequest)
-        account = Account(name=name, cookie=cookie, proxy=proxy, color=color, private_server_link=private_server_link)
+        account = Account(name=name, cookie=cookie, proxy=proxy, color=color, private_servers=private_servers)
         self._vault.add(account)
         QTimer.singleShot(0, self, self._refresh)
         QTimer.singleShot(100, self, self._backfill_identities)

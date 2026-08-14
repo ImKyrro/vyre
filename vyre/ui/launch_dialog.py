@@ -102,8 +102,9 @@ class LaunchDialog(QDialog):
         layout.addWidget(self._label("Private server link or code (optional)"))
         self._private = QLineEdit()
         self._private.setPlaceholderText("Private server link or access code")
-        if self._account.private_server_link:
-            self._private.setText(self._account.private_server_link)
+        vip_servers = getattr(self._account, "private_servers", [])
+        if vip_servers:
+            self._private.setText(vip_servers[0].get("link", ""))
         layout.addWidget(self._private)
 
         self._launch_btn = ProcessingButton("Launch game")
