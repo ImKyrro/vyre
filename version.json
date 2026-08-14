@@ -1,5 +1,5 @@
 {
-  "version": "1.1.6",
-  "url": "https://github.com/ImKyrro/vyre/releases/download/v1.1.6/Vyre.exe",
-  "notes": "Vyre 1.1.6\n- Implemented background threading for launching Roblox via local API to prevent blocking local QHttpServer and causing extension timeouts\n- Fixed console QPainter draw engine warnings by safely checking painter.begin() in paintEvents\n- Added application V logo icon in the frameless custom TitleBar next to the app name"
+  "version": "1.1.7",
+  "url": "https://github.com/ImKyrro/vyre/releases/download/v1.1.7/Vyre.exe",
+  "notes": "Vyre 1.1.7\n- Added support for saving multiple VIP servers with game icons per account\n- Fixed Chrome extension offline visual bug\n- Various UI improvements"
 }

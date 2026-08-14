@@ -9,6 +9,9 @@ from PySide6.QtWidgets import (
     QTabWidget,
     QVBoxLayout,
     QWidget,
+    QListWidget,
+    QListWidgetItem,
+    QInputDialog,
 )
 
 from .. import roblox
@@ -159,10 +162,22 @@ class AccountDialog(QDialog):
         self._proxy.setPlaceholderText("e.g. 12.34.56.78:8080 or user:pass@host:port")
         root.addWidget(self._proxy)
 
-        root.addWidget(self._label("Private Server Link (optional)"))
-        self._private_server = QLineEdit(self._account.private_server_link)
-        self._private_server.setPlaceholderText("e.g. https://www.roblox.com/games/place_id/name?privateServerLinkCode=...")
-        root.addWidget(self._private_server)
+        root.addWidget(self._label("Private Servers (optional)"))
+        self._vip_list = QListWidget()
+        self._vip_list.setFixedHeight(80)
+        for vip in getattr(self._account, "private_servers", []):
+            item = QListWidgetItem(f"{vip.get('name', 'VIP')} - {vip.get('link', '')}")
+            item.setData(Qt.UserRole, vip)
+            self._vip_list.addItem(item)
+        root.addWidget(self._vip_list)
+        vip_btns = QHBoxLayout()
+        add_vip = QPushButton("Add VIP Server")
+        add_vip.clicked.connect(self._add_vip)
+        rem_vip = QPushButton("Remove Selected")
+        rem_vip.clicked.connect(self._remove_vip)
+        vip_btns.addWidget(add_vip)
+        vip_btns.addWidget(rem_vip)
+        root.addLayout(vip_btns)
 
         self._error = QLabel("")
         self._error.setStyleSheet(f"color: {PALETTE['danger']}; font-size: 12px;")
@@ -306,8 +321,24 @@ class AccountDialog(QDialog):
         self._account.cookie = cookie
         self._account.note = self._note.text().strip()
         self._account.proxy = self._proxy.text().strip()
-        self._account.private_server_link = self._private_server.text().strip()
+        self._account.private_servers = []
+        for i in range(self._vip_list.count()):
+            self._account.private_servers.append(self._vip_list.item(i).data(Qt.UserRole))
         self.accept()
+
+    def _add_vip(self) -> None:
+        link, ok = QInputDialog.getText(self, "Add VIP Server", "Private Server Link:")
+        if ok and link.strip():
+            name, ok2 = QInputDialog.getText(self, "VIP Server Name", "Name (e.g. VIP Server 1):")
+            if ok2 and name.strip():
+                vip = {"name": name.strip(), "link": link.strip()}
+                item = QListWidgetItem(f"{vip['name']} - {vip['link']}")
+                item.setData(Qt.UserRole, vip)
+                self._vip_list.addItem(item)
+
+    def _remove_vip(self) -> None:
+        for item in self._vip_list.selectedItems():
+            self._vip_list.takeItem(self._vip_list.row(item))
 
     def result_account(self) -> Account:
         return self._account

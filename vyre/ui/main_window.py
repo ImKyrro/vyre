@@ -365,6 +365,7 @@ class MainWindow(QWidget):
         d.settings_web_requested.connect(self._open_email_dialog)
         d.health_requested.connect(self._check_health)
         d.join_requested.connect(self._join_game)
+        d.vip_launch_requested.connect(self._launch_vip)
 
     def _build_placeholder(self) -> QWidget:
         widget = QWidget()
@@ -564,6 +565,25 @@ class MainWindow(QWidget):
 
         ok, message = launcher.launch_as_account(account.cookie, place_id, job_id, proxy=account.proxy)
         self._toast.show_message(message if ok else "Could not launch")
+
+    def _launch_vip(self, account_id: str, link: str) -> None:
+        account = self._account_or_warn(account_id)
+        if not account or not link:
+            return
+        from .. import launcher
+        access, code = launcher.parse_private_server(link)
+        place = launcher.parse_place_id(link)
+        if not place:
+            self._toast.show_message("Invalid VIP server link")
+            return
+        self._toast.show_message(f"Launching VIP server for {account.name}…")
+        import threading
+        threading.Thread(
+            target=launcher.launch_as_account,
+            args=(account.cookie, place),
+            kwargs={"access_code": access, "link_code": code, "proxy": account.proxy},
+            daemon=True
+        ).start()
 
     def _view_web(self, account_id: str) -> None:
         account = self._account_or_warn(account_id)

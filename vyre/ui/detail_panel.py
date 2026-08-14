@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
     QWidget,
+    QComboBox,
 )
 
 from .. import roblox
@@ -38,6 +39,7 @@ class _DetailWorker(QThread):
         self._cookie = account.cookie
         self._user_id = account.user_id
         self._proxy = account.proxy
+        self._vip = getattr(account, "private_servers", [])
 
     def run(self) -> None:
         first = {}
@@ -64,6 +66,27 @@ class _DetailWorker(QThread):
             extra["game"] = game
         self.done.emit(self._id, extra)
 
+        if self._vip:
+            vip_data = []
+            for vip in self._vip:
+                link = vip.get("link", "")
+                name = vip.get("name", "VIP Server")
+                from .. import launcher
+                place_id = launcher.parse_place_id(link)
+                icon_bytes = b""
+                if place_id:
+                    universe = roblox.resolve_universe(place_id)
+                    if universe:
+                        icon_url = roblox.fetch_game_icon(universe)
+                        if icon_url:
+                            import urllib.request
+                            try:
+                                icon_bytes = urllib.request.urlopen(icon_url, timeout=3.0).read()
+                            except Exception:
+                                pass
+                vip_data.append({"name": name, "link": link, "icon_bytes": icon_bytes})
+            self.done.emit(self._id, {"vip": vip_data})
+
 
 class DetailPanel(QWidget):
     browse_requested = Signal(str)
@@ -75,6 +98,7 @@ class DetailPanel(QWidget):
     settings_web_requested = Signal(str)
     health_requested = Signal(str)
     join_requested = Signal(str, str, str)
+    vip_launch_requested = Signal(str, str)
 
     def __init__(self, config=None, parent=None):
         super().__init__(parent)
@@ -112,6 +136,19 @@ class DetailPanel(QWidget):
         self._join_btn.clicked.connect(self._emit_join)
         self._join_btn.hide()
         info.addWidget(self._join_btn)
+
+        self._vip_row = QWidget()
+        vip_layout = QHBoxLayout(self._vip_row)
+        vip_layout.setContentsMargins(0, 0, 0, 0)
+        self._vip_combo = QComboBox()
+        self._vip_launch = QPushButton("Launch VIP")
+        self._vip_launch.setObjectName("Primary")
+        self._vip_launch.clicked.connect(self._emit_vip_launch)
+        vip_layout.addWidget(self._vip_combo, 1)
+        vip_layout.addWidget(self._vip_launch)
+        info.addWidget(self._vip_row)
+        self._vip_row.hide()
+
         info.addStretch(1)
         head.addLayout(info, 1)
         outer.addLayout(head)
@@ -220,6 +257,13 @@ class DetailPanel(QWidget):
         if self._account and self._join[0]:
             self.join_requested.emit(self._account.id, self._join[0], self._join[1])
 
+    def _emit_vip_launch(self) -> None:
+        idx = self._vip_combo.currentIndex()
+        if idx >= 0 and self._account:
+            link = self._vip_combo.itemData(idx)
+            if link:
+                self.vip_launch_requested.emit(self._account.id, link)
+
     def _hide_info(self) -> bool:
         return bool(self._config and self._config.get("hide_info"))
 
@@ -227,6 +271,8 @@ class DetailPanel(QWidget):
         self._account = account
         self._join = ("", "")
         self._join_btn.hide()
+        self._vip_row.hide()
+        self._vip_combo.clear()
         hidden = self._hide_info()
         self._stats_row.setVisible(not hidden)
         self._handle.setVisible(not hidden)
@@ -293,6 +339,20 @@ class DetailPanel(QWidget):
             self._friends.set_value(str(stats.get("friends", "—")))
             self._followers.set_value(str(stats.get("followers", "—")))
             self._following.set_value(str(stats.get("following", "—")))
+
+        if "vip" in data:
+            self._vip_combo.clear()
+            vip_list = data["vip"]
+            if vip_list:
+                from PySide6.QtGui import QIcon, QPixmap
+                for v in vip_list:
+                    icon = QIcon()
+                    if v["icon_bytes"]:
+                        pixmap = QPixmap()
+                        pixmap.loadFromData(v["icon_bytes"])
+                        icon = QIcon(pixmap)
+                    self._vip_combo.addItem(icon, v["name"], v["link"])
+                self._vip_row.show()
 
     def paintEvent(self, event):
         from PySide6.QtGui import QPainter

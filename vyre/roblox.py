@@ -184,6 +184,17 @@ def fetch_game_info(place_id: str) -> dict:
     }
 
 
+def fetch_game_icon(universe_id: str, size: str = "150x150") -> str:
+    if not universe_id:
+        return ""
+    url = f"https://thumbnails.roblox.com/v1/games/icons?universeIds={universe_id}&returnPolicy=PlaceHolder&size={size}&format=Png&isCircular=false"
+    data = _get(url)
+    items = data.get("data", [])
+    if items and items[0].get("state") == "Completed":
+        return items[0].get("imageUrl", "")
+    return ""
+
+
 def list_servers(place_id: str, cursor: str = "", limit: int = 100) -> dict:
     url = (
         f"https://games.roblox.com/v1/games/{place_id}/servers/Public"

@@ -22,14 +22,19 @@ function checkVyre() {
   timeoutFetch(VYRE_URL + "/", { method: "GET" }, 1500)
     .then((res) => res.json())
     .then((data) => {
+      const wasOffline = dot.className === "dot off";
       dot.className = "dot on";
       text.textContent = "Connected (v" + data.version + ")";
+      if (wasOffline) {
+        loadVaultAccounts();
+      }
     })
     .catch(() => {
       dot.className = "dot off";
       text.textContent = "Offline";
     });
 }
+setInterval(checkVyre, 2000);
 
 function getCookie() {
   return new Promise((resolve) => {
