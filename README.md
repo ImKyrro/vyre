@@ -1,135 +1,103 @@
-# Vyre
+<div align="center">
+  <img src="docs/screenshots/main.png" alt="Vyre" width="800">
 
-A clean, professional Roblox alt account manager for Windows — Onyx/Crimson UI,
-encrypted vault, embedded Chromium, live presence, and one-click game launching.
+  # Vyre 
+  **The ultimate professional Roblox alt account manager for Windows.**
 
-[![Latest release](https://img.shields.io/github/v/release/ImKyrro/vyre?label=download&color=e5484d)](https://github.com/ImKyrro/vyre/releases/latest)
+  [![Latest Release](https://img.shields.io/github/v/release/ImKyrro/vyre?label=Version&color=e5484d&style=for-the-badge)](https://github.com/ImKyrro/vyre/releases/latest)
+  [![Downloads](https://img.shields.io/github/downloads/ImKyrro/vyre/total?color=2b9348&style=for-the-badge)](https://github.com/ImKyrro/vyre/releases)
+  [![Platform](https://img.shields.io/badge/Platform-Windows-0078d7?style=for-the-badge&logo=windows)](https://github.com/ImKyrro/vyre/releases)
 
-### ⬇ [Download the latest Vyre.exe](https://github.com/ImKyrro/vyre/releases/latest/download/Vyre.exe)
+  *Manage accounts, embedded Chromium, live presence, one-click game launching, and more.*
 
-No install needed — download and run. Windows may show a one-time SmartScreen
-prompt (More info → Run anyway) since the build isn't code-signed yet.
+  [**⬇ Download Latest Vyre.exe**](https://github.com/ImKyrro/vyre/releases/latest/download/Vyre.exe)
+</div>
 
-![Vyre](docs/screenshots/main.png)
+---
 
-<p align="center">
-  <img src="docs/screenshots/settings.png" width="45%">
-  <img src="docs/screenshots/tools.png" width="45%">
-</p>
+## 📖 Table of Contents
+- [✨ Key Features](#-key-features)
+- [🚀 Installation & Setup](#-installation--setup)
+- [🔒 Security & Data](#-security--data)
+- [🤖 MCP Server for AI](#-mcp-server-for-ai)
+- [💖 Support](#-support)
 
-## Features
+---
 
-**Accounts**
-- Store unlimited accounts with real Roblox avatars and per-account accent colors
-- Favorites (star), reorder (move up/down), duplicate, search
-- Rich detail view: display name, user id, friends / followers / following stats
+## ✨ Key Features
 
-**Logging in (multiple ways)**
-- Paste a `.ROBLOSECURITY` cookie
-- Sign in through a secure in-app Roblox window (session captured automatically)
-- Enter a username & password — Vyre fills the login form; you solve any puzzle
-- Bulk import many cookies, or a list of `username:password` lines at once
+### 👤 Account Management
+* **Unlimited Accounts:** Store unlimited accounts with real Roblox avatars and customizable accent colors.
+* **Organize:** Favorite (star), reorder, duplicate, and search accounts instantly.
+* **Rich Profiles:** View Display Names, User IDs, and live Friends/Followers/Following statistics.
 
-**Browsing & sessions**
-- Embedded Chromium (QtWebEngine) with back / forward / reload / home / open-external
-- Every account runs in its own isolated browser profile
-- View any account's profile on the web (in-app or your default browser)
+### 🔑 Secure Login Methods
+* **Cookie Login:** Paste your `.ROBLOSECURITY` cookie directly.
+* **In-App Login:** Sign in through a secure embedded Roblox window—your session is captured automatically.
+* **Auto-Fill:** Enter username & password and Vyre handles the rest.
+* **Bulk Import:** Import massive lists of cookies or `username:password` combinations at once.
 
-**Presence**
-- Live status for every account: Online / In game / In Studio / Offline
-- See the game an account is currently in, and jump straight into their server
-- Auto-refresh on a configurable interval
+### 🌐 Embedded Chromium Browser
+* **Isolated Profiles:** Every account runs in its own isolated browser profile via QtWebEngine.
+* **Full Navigation:** Includes back, forward, reload, home, and open-external actions.
+* **Quick Access:** Open any account's profile or settings page in-app with a single click.
 
-**Launching games**
-- Launch any game by Place ID or link, as a chosen account (auth-ticket based)
-- Join a specific server by Job ID
-- Join private servers by link or access code
-- Built-in server browser with player counts — pick a server and join
-- Saved games for one-click launching
-- **Multi-select** accounts and mass-launch them into a game, or follow a user /
-  friend into their game, with a configurable stagger between launches
+### 🟢 Live Presence & Tracking
+* **Real-time Status:** Instantly see if accounts are Online, In-Game, In Studio, or Offline.
+* **Server Tracking:** See exactly which game an account is playing and jump straight into their server.
 
-**Multiple instances & window tools** (Roblox tools)
-- Allow more than one Roblox client to run at once (holds the singleton handle)
-- Minimize all, restore all, or tile every open Roblox window into a grid
-- Lower Roblox clients' CPU/GPU priority so background alts stop hogging the machine
-- Close all clients; live count of open windows
+### 🎮 Game Launching
+* **One-Click Launch:** Launch any game by Place ID or saved link.
+* **VIP & Private Servers:** Save multiple VIP servers per account with auto-fetched game icons. Join by link or access code.
+* **Mass-Launch:** Select multiple accounts and launch them all into a game with configurable stagger intervals.
+* **Server Browser:** Browse active game servers with live player counts directly in the app.
 
-**Account upkeep**
-- Auto-fills each account's user id, avatar, and presence in the background
-- Open any account's Roblox account/email settings page in its own session
-- "Back to Vyre" button to return from any web view
+### 🛠️ Roblox Window Tools
+* **Multi-Instance:** Allow multiple Roblox clients to run simultaneously (bypasses singleton locks).
+* **Window Management:** Minimize all, restore all, or neatly tile every open Roblox client into a grid.
+* **Resource Management:** Lower the CPU/GPU priority of background accounts to free up system resources.
 
-**Security & data**
-- Master password encrypts the vault (PBKDF2 + Fernet); cookies never in plaintext
-- Change master password, export / import an encrypted vault
-- Clear browser sessions, open data folder
+---
 
-**System integration**
-- Compact windowed app, desktop + Start Menu shortcuts, custom icon
-- Optional: start with Windows, minimize to system tray
-- Ships an **MCP server** so AI clients can list accounts, check presence,
-  browse servers, and launch games
+## 🚀 Installation & Setup
 
-## Requirements
+### For Regular Users
+No installation required! Vyre is a standalone portable executable.
+1. Download `Vyre.exe` from the [Releases Page](https://github.com/ImKyrro/vyre/releases/latest).
+2. Double-click to run. 
+*(Note: Windows SmartScreen may show a prompt on the first run since the build isn't code-signed yet. Click **More info → Run anyway**).*
+3. On first launch, you will be prompted to create a **Master Password**. This encrypts your vault. **Keep it safe!**
 
-- Windows, Python 3.10+ (tested on 3.14)
-
-## Setup
-
+### For Developers
+If you want to run Vyre from source:
 ```bash
 pip install -r requirements.txt
-python make_shortcut.py
-```
-
-Regenerate the icon only if you change `build_icon.py`:
-
-```bash
-python build_icon.py
-```
-
-## Run
-
-Double-click **Vyre** (desktop/Start Menu), or:
-
-```bash
 python run.py
 ```
+*(Optional) Create a desktop shortcut:* `python make_shortcut.py`
 
-To pin to the taskbar: launch Vyre, right-click its taskbar icon, choose
-**Pin to taskbar** (Windows blocks silent pinning).
+---
 
-First launch sets a master password. It encrypts your vault and cannot be
-recovered, so keep it safe.
+## 🔒 Security & Data
+Vyre takes your privacy seriously. Your data is stored locally and encrypted:
+* **Encryption:** The vault is encrypted using **PBKDF2 + Fernet** with your Master Password. Cookies are never saved in plaintext.
+* **Local Storage:** Everything is stored locally in `%APPDATA%\Vyre` (including `vault.dat`, `config.json`, and isolated browser `profiles\`).
+* **Direct Connections:** Vyre only communicates directly with Roblox servers.
 
-## MCP server
+---
 
-Vyre exposes an MCP server (`python -m vyre.mcp_server`) with tools:
-`list_accounts`, `account_presence`, `game_info`, `list_servers`, `launch_game`.
-It reads the vault using the `VYRE_MASTER_PASSWORD` environment variable. Copy a
-ready-made client config from **Settings → MCP**.
+## 🤖 MCP Server for AI
+Vyre ships with a built-in **Model Context Protocol (MCP)** server, allowing AI agents to interact with your Roblox accounts.
+* **Command:** `python -m vyre.mcp_server`
+* **Features:** Read accounts, check presence, fetch game info, and launch games directly from AI prompts.
+* **Setup:** Requires the `VYRE_MASTER_PASSWORD` environment variable. You can copy a ready-made client config from **Settings → MCP** in the app.
 
-## Where data is stored
+---
 
-Everything lives under `%APPDATA%\Vyre`:
+## 💖 Support
+Vyre is developed and maintained by **Kyrro**. If this tool helps you, consider supporting its development!
 
-- `vault.dat` — encrypted accounts
-- `config.json` — settings
-- `profiles\` — per-account browser sessions
+* **Discord:** `kyrro_real`
+* **Litecoin (LTC):** `LSmU3RodML3p2HvwN2wU4HUJZSJddMxUJW`
 
-## Support
-
-Made by **Kyrro**. If Vyre helps you, tips are appreciated (game pass support is
-coming soon):
-
-- Litecoin (LTC): `LSmU3RodML3p2HvwN2wU4HUJZSJddMxUJW`
-- Discord: `kyrro_real`
-
-Open **♥ Support** in the app to copy these.
-
-## Notes
-
-Vyre stores your own account sessions locally and only talks to Roblox. Keep your
-master password private — anyone with it and the vault file can read your cookies.
-Launching a specific account uses Roblox's authentication-ticket flow; if a ticket
-can't be obtained it falls back to a standard deep link.
+*(Open the ♥ Support tab in the app to copy these links quickly).*
