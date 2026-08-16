@@ -75,6 +75,19 @@ class _HealthWorker(QThread):
         self.done.emit(result)
 
 
+class _RefreshCookieWorker(QThread):
+    done = Signal(str, str)
+
+    def __init__(self, account, parent=None):
+        super().__init__(parent)
+        self._id = account.id
+        self._cookie = account.cookie
+        self._proxy = account.proxy
+
+    def run(self) -> None:
+        self.done.emit(self._id, roblox.refresh_cookie(self._cookie, proxy=self._proxy))
+
+
 class _UpdateWorker(QThread):
     done = Signal(dict)
 
@@ -172,10 +185,11 @@ class TitleBar(QWidget):
     def _on_update_clicked(self, checked: bool = False) -> None:
         self._update_btn.setEnabled(False)
         self._update_btn.setText("Downloading (0%)...")
-        import sys
+        import tempfile
         from pathlib import Path
-        dest = Path(sys.executable).parent / "Vyre.new"
-        self._worker = _AppUpdateWorker(self._download_url, str(dest), self)
+        setup_url = self._download_url.replace("Vyre.exe", "VyreSetup.exe")
+        dest = Path(tempfile.gettempdir()) / "VyreSetup.exe"
+        self._worker = _AppUpdateWorker(setup_url, str(dest), self)
         self._worker.progress.connect(self._on_download_progress)
         self._worker.done.connect(self._on_download_done)
         self._worker.start()
@@ -186,41 +200,22 @@ class TitleBar(QWidget):
     def _on_download_done(self, success: bool, error: str) -> None:
         if success:
             self._update_btn.setEnabled(True)
-            self._update_btn.setText("Restart Vyre")
+            self._update_btn.setText("Install Update")
             self._update_btn.setStyleSheet("background-color: #30a46c; color: #ffffff; border: none; border-radius: 4px; padding: 2px 10px; font-size: 11px; font-weight: bold; margin-right: 6px;")
             self._update_btn.clicked.disconnect()
-            self._update_btn.clicked.connect(self._restart_app)
+            self._update_btn.clicked.connect(self._run_installer)
         else:
             self._update_btn.setEnabled(True)
             self._update_btn.setText(f"Failed: {error[:15]}")
 
-    def _restart_app(self, checked: bool = False) -> None:
-        import sys
-        import os
-        import subprocess
+    def _run_installer(self, checked: bool = False) -> None:
+        import subprocess, tempfile
         from pathlib import Path
         from PySide6.QtWidgets import QApplication
-        exe_path = Path(sys.executable)
-        if exe_path.name.lower() == "vyre.exe":
-            new_exe_path = exe_path.with_name("Vyre.new")
-            pid = os.getpid()
-            ps_cmd = (
-                f"Start-Sleep -Seconds 1; "
-                f"while (Get-Process -Id {pid} -ErrorAction SilentlyContinue) {{ Start-Sleep -Milliseconds 100 }}; "
-                f"Move-Item -Path '{new_exe_path}' -Destination '{exe_path}' -Force; "
-                f"Start-Process -FilePath '{exe_path}'"
-            )
-            try:
-                subprocess.Popen(["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_cmd])
-            except Exception:
-                pass
-        else:
-            script = Path(__file__).resolve().parent.parent / "Vyre.pyw"
-            try:
-                subprocess.Popen([sys.executable, str(script)])
-            except Exception:
-                pass
-        QApplication.quit()
+        dest = Path(tempfile.gettempdir()) / "VyreSetup.exe"
+        if dest.exists():
+            subprocess.Popen([str(dest)])
+            QApplication.quit()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -269,6 +264,7 @@ class MainWindow(QWidget):
         self._presence_worker: _PresenceWorker | None = None
         self._backfill_worker: _BackfillWorker | None = None
         self._health_worker: _HealthWorker | None = None
+        self._refresh_cookie_worker: _RefreshCookieWorker | None = None
         self._tray: QSystemTrayIcon | None = None
 
         self.setObjectName("Root")
@@ -364,6 +360,7 @@ class MainWindow(QWidget):
         d.edit_requested.connect(self._edit_account)
         d.settings_web_requested.connect(self._open_email_dialog)
         d.health_requested.connect(self._check_health)
+        d.refresh_cookie_requested.connect(self._refresh_cookie)
         d.join_requested.connect(self._join_game)
         d.vip_launch_requested.connect(self._launch_vip)
 
@@ -833,6 +830,36 @@ class MainWindow(QWidget):
             self._toast.show_message("Cookie is valid" if valid else "Cookie has expired")
         else:
             self._toast.show_message(f"{len(results) - expired} valid, {expired} expired")
+
+    def _refresh_cookie(self, account_id: str) -> None:
+        account = self._account_or_warn(account_id)
+        if not account:
+            return
+        if not roblox.is_valid_cookie(account.cookie):
+            self._toast.show_message("Cookie is invalid — can't refresh")
+            return
+        if self._refresh_cookie_worker and self._refresh_cookie_worker.isRunning():
+            self._toast.show_message("Already refreshing a cookie…")
+            return
+        self._toast.show_message(f"Refreshing {account.name}'s cookie…")
+        self._refresh_cookie_worker = _RefreshCookieWorker(account, self)
+        self._refresh_cookie_worker.done.connect(self._on_cookie_refreshed)
+        self._refresh_cookie_worker.start()
+
+    def _on_cookie_refreshed(self, account_id: str, cookie: str) -> None:
+        account = self._vault.get(account_id)
+        if not account:
+            return
+        if not cookie:
+            self._toast.show_message("Couldn't refresh cookie — session may be expired")
+            return
+        account.cookie = cookie
+        self._vault.update(account)
+        self._browser.reseed(account)
+        self._sidebar.set_health(account_id, True)
+        if self._selected == account_id:
+            self._detail.set_account(account)
+        self._toast.show_message(f"Refreshed {account.name}'s cookie")
 
     def _mass_launch(self) -> None:
         ids = self._sidebar.checked_ids()

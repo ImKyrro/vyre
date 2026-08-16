@@ -1,5 +1,5 @@
 {
-  "version": "1.1.8",
-  "url": "https://github.com/ImKyrro/vyre/releases/download/v1.1.8/Vyre.exe",
-  "notes": "Vyre 1.1.8\n- Fixed crash when opening the quick-launch dialog due to missing VIP server variables"
+  "version": "1.1.9",
+  "url": "https://github.com/ImKyrro/vyre/releases/download/v1.1.9/Vyre.exe",
+  "notes": "Vyre 1.1.9\n- Fixed updater not replacing the executable correctly\n- Added VyreSetup.exe bootstrapper to clean up old versions automatically"
 }

@@ -254,6 +254,59 @@ def get_auth_ticket(cookie: str, timeout: float = 12.0, proxy: str = "") -> str:
     return ""
 
 
+def _extract_cookie(resp_headers) -> str:
+    cookie_headers = []
+    if hasattr(resp_headers, "get_all"):
+        cookie_headers = resp_headers.get_all("Set-Cookie") or []
+    elif hasattr(resp_headers, "getheaders"):
+        cookie_headers = [v for k, v in resp_headers.getheaders() if k.lower() == "set-cookie"]
+    for h in cookie_headers:
+        if COOKIE_NAME in h:
+            for part in h.split(";"):
+                if part.strip().startswith(COOKIE_NAME + "="):
+                    _, _, val = part.partition("=")
+                    val = val.strip()
+                    if _WARNING in val:
+                        return val
+    return ""
+
+
+def refresh_cookie(cookie: str, timeout: float = 12.0, proxy: str = "") -> str:
+    ticket = get_auth_ticket(cookie, timeout, proxy)
+    if not ticket:
+        return ""
+    data = json.dumps({"authenticationTicket": ticket}).encode("utf-8")
+    csrf = ""
+    for _ in range(2):
+        headers = {
+            "User-Agent": _UA,
+            "Content-Type": "application/json",
+            "Referer": "https://www.roblox.com/",
+            "Origin": "https://www.roblox.com",
+            "RBXAuthenticationNegotiation": "1",
+            "Cookie": f"{COOKIE_NAME}={normalize_cookie(cookie)}",
+        }
+        if csrf:
+            headers["X-CSRF-TOKEN"] = csrf
+        status, resp_headers, _ = _open(
+            urllib.request.Request(
+                "https://auth.roblox.com/v1/authentication-ticket/redeem",
+                data=data,
+                headers=headers,
+                method="POST",
+            ),
+            timeout,
+            proxy,
+        )
+        if status == 403 and resp_headers.get("x-csrf-token"):
+            csrf = resp_headers.get("x-csrf-token")
+            continue
+        if status == 200:
+            return _extract_cookie(resp_headers)
+        break
+    return ""
+
+
 def _post_ok(url: str, cookie: str, payload: dict, timeout: float = 12.0) -> bool:
     data = json.dumps(payload).encode("utf-8")
     csrf = ""
@@ -362,17 +415,6 @@ def complete_quick_login(code: str, private_key: str, proxy: str = "") -> str:
             csrf = resp_headers.get("x-csrf-token")
             continue
         if status == 200:
-            cookie_headers = []
-            if hasattr(resp_headers, "get_all"):
-                cookie_headers = resp_headers.get_all("Set-Cookie") or []
-            elif hasattr(resp_headers, "getheaders"):
-                cookie_headers = [v for k, v in resp_headers.getheaders() if k.lower() == "set-cookie"]
-            for h in cookie_headers:
-                if COOKIE_NAME in h:
-                    parts = h.split(";")
-                    for p in parts:
-                        if p.strip().startswith(COOKIE_NAME + "="):
-                            _, _, val = p.partition("=")
-                            return val.strip()
+            return _extract_cookie(resp_headers)
         break
     return ""

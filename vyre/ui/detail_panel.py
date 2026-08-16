@@ -97,6 +97,7 @@ class DetailPanel(QWidget):
     edit_requested = Signal(str)
     settings_web_requested = Signal(str)
     health_requested = Signal(str)
+    refresh_cookie_requested = Signal(str)
     join_requested = Signal(str, str, str)
     vip_launch_requested = Signal(str, str)
 
@@ -176,6 +177,7 @@ class DetailPanel(QWidget):
         copy_cookie = self._action("Copy cookie", "copy", self.copy_cookie_requested)
         copy_profile = self._action("Copy link", "link", self.copy_profile_requested)
         check = self._action("Check", "shield", self.health_requested)
+        self._refresh_cookie = self._action("Refresh cookie", "refresh", self.refresh_cookie_requested)
         actions.addWidget(self._browse, 0, 0)
         actions.addWidget(launch, 0, 1)
         actions.addWidget(web, 0, 2)
@@ -184,6 +186,7 @@ class DetailPanel(QWidget):
         actions.addWidget(copy_cookie, 1, 1)
         actions.addWidget(copy_profile, 1, 2)
         actions.addWidget(check, 1, 3)
+        actions.addWidget(self._refresh_cookie, 2, 0, 1, 4)
         for col in range(4):
             actions.setColumnStretch(col, 1)
         outer.addLayout(actions)

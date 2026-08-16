@@ -1,4 +1,2 @@
-Vyre 1.1.7
-- Added support for saving multiple VIP servers with game icons per account
-- Fixed Chrome extension offline visual bug
-- Various UI improvements
+Vyre 1.1.8
+- Fixed crash when opening the quick-launch dialog due to missing VIP server variables
